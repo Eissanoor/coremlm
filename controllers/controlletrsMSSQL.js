@@ -19,7 +19,18 @@ const config = {
   port: port,
 };
 const FATSDB = {
+  async home(req, res, next)
+  {
+    try {
+      const connection = await mysql.createConnection(config);
 
+
+      return res.status(200).send({ status:200, data: "THIS IS CORE_MLM HOME PAGE" });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send("Internal Server Error");
+    }
+  },
   async allgetprofile(req, res, next)
   {
     try {
@@ -48,7 +59,7 @@ const FATSDB = {
       const [rows, fields] = await connection.execute(query);
 
       connection.end();
-      
+
       return res.status(200).send({ data: rows });
     } catch (e) {
       console.error(e);
@@ -60,9 +71,9 @@ const FATSDB = {
     try {
       const connection = await mysql.createConnection(config);
 
-      
 
-      
+
+
       const getprofile = `
       SELECT * FROM profile
       LEFT JOIN user AS user_profile ON profile.user_id = user_profile.id
@@ -75,7 +86,7 @@ const FATSDB = {
       const getprofileId = await connection.execute(getprofile, userIdAndprofileId);
       connection.end();
 
-      return res.status(200).send({ status:200, data: getprofileId[0][0] });
+      return res.status(200).send({ status: 200, data: getprofileId[0][0] });
     } catch (e) {
       console.error(e);
       return res.status(500).send("Internal Server Error");
@@ -193,7 +204,7 @@ const FATSDB = {
       const getprofile = 'SELECT * FROM profile WHERE user_id=? ';
       const userIdAndprofileId = [req.body.user_id];
       const getprofileId = await connection.execute(getprofile, userIdAndprofileId);
-      
+
       const profile_ID = getprofileId[0][0].id
       return res.status(201).json({
         status: 201,
@@ -270,7 +281,7 @@ const FATSDB = {
 
       const result = await connection.execute(userInsert, values);
       const packageId = result[0].insertId
-    
+
       return res.status(201).json({ status: 201, message: "package has been created", data: { "packageId": packageId } });
     } catch (e) {
       console.error(e);
