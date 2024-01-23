@@ -103,9 +103,19 @@ const FATSDB = {
     let connection;  // Declare connection outside the try block
 
     try {
+
       connection = await mysql.createConnection(config);
       await connection.connect();
 
+
+      const { email } = req.body;
+      const [rows] = await connection.execute(
+        'SELECT * FROM user WHERE email = ?',
+        [email]
+      );
+      if (rows.length > 0) {
+        return res.status(400).json({ status: 400, message: "This user already exists", data: null });
+      }
       const userInsert = 'INSERT INTO user (firstname, lastname, email, password, gender, created_at, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)';
 
       const values = [
@@ -325,6 +335,36 @@ const FATSDB = {
       await connection.connect();
 
       const userInsert = 'INSERT INTO package (profile_id, name, description, amount, created_at, updated_at) VALUES (?, ?, ?, ?,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)';
+
+      const values = [
+        req.body.profile_id,
+        req.body.name,
+        req.body.description,
+        req.body.amount
+      ];
+
+      const result = await connection.execute(userInsert, values);
+      const packageId = result[0].insertId
+
+      return res.status(201).json({ status: 201, message: "package has been created", data: { "packageId": packageId } });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
+  async addnewupload_material(req, res, next)
+  {
+    let connection;  // Declare connection outside the try block
+
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+
+      const userInsert = 'INSERT INTO upload_material (profile_id, name, description, amount, created_at, updated_at) VALUES (?, ?, ?, ?,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)';
 
       const values = [
         req.body.profile_id,
