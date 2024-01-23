@@ -10,4 +10,5 @@ router.post("/addnewsetting", FATSDB.addnewsetting)
 router.get("/user_profileuserID/:user_id", FATSDB.user_profileuserID)
 router.post("/addnewpackage", FATSDB.addnewpackage)
 router.get("/", FATSDB.home)
+router.post("/userlogin", FATSDB.UserLoginAuth)
 export default router;

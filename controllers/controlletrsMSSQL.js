@@ -1,6 +1,8 @@
 // using mssql .....................................................................................
 import path from "path";
+import jwt from "jsonwebtoken";
 import mysql from 'mysql2/promise';
+import util from 'util';
 import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +13,8 @@ let user = process.env.user;
 let password = process.env.password;
 let database = process.env.database;
 let port = process.env.port;
+let jwtSecret = process.env.JWT_SECRET;
+let jwtExpiration = process.env.JWT_EXPIRATION;
 const config = {
   host: host,
   user: user,
@@ -18,6 +22,7 @@ const config = {
   database: database,
   port: port,
 };
+
 const FATSDB = {
   async home(req, res, next)
   {
@@ -25,7 +30,7 @@ const FATSDB = {
       const connection = await mysql.createConnection(config);
 
 
-      return res.status(200).send({ status:200, data: "THIS IS CORE_MLM HOME PAGE" });
+      return res.status(200).send({ status: 200, data: "THIS IS CORE_MLM HOME PAGE" });
     } catch (e) {
       console.error(e);
       return res.status(500).send("Internal Server Error");
@@ -124,6 +129,55 @@ const FATSDB = {
       if (connection && connection.end) {
         connection.end();
       }
+    }
+  },
+  async UserLoginAuth(req, res, next)
+  {
+    try {
+      let token;
+      let tokenPayload;
+      const { email, password } = req.body;
+      const connection = await mysql.createConnection(config);
+
+      // Query to check user credentials
+      const [rows] = await connection.execute(
+        'SELECT * FROM user WHERE email = ? AND password = ?',
+        [email, password]
+      );
+
+      if (rows.length > 0) {
+        // Fetch roles assigned to user based on email
+        const [dataRows] = await connection.execute(
+          'SELECT * FROM user WHERE email = ?',
+          [email]
+        );
+
+        if (dataRows.length !== 0) {
+          const assignedRoles = dataRows.map((item) => item.RoleID);
+          tokenPayload = {
+            userloginId: email,
+            assignedRoles: assignedRoles,
+          };
+        } else {
+          tokenPayload = {
+            userloginId: email,
+            assignedRoles: [],
+          };
+        }
+
+        token = jwt.sign(tokenPayload, jwtSecret, { expiresIn: jwtExpiration });
+
+        if (!token) {
+          return res.status(500).send({ success: false, message: 'Token not generated' });
+        }
+
+        res.status(200).send({ success: true, user: rows, token: token });
+      } else {
+        return res.status(400).send({ success: false, message: 'Invalid Credentials' });
+      }
+    } catch (err) {
+      console.error(err);
+      return res.status(500).send({ success: false, message: 'Internal Server Error', error: err });
     }
   },
   async addnewcontact(req, res, next)

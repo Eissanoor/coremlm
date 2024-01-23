@@ -22,7 +22,8 @@
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.7.0",
     "nodemon": "^2.0.20",
-    "odbc": "^2.4.6"
+    "odbc": "^2.4.6",
+    "util": "^0.12.5"
   },
   "type": "module",
   "description": ""
