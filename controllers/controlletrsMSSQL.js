@@ -223,45 +223,39 @@ const FATSDB = {
       }
     }
   },
-  async addnewsetting(req, res, next)
-  {
+  async addnewsetting(req, res, next) {
     let connection;
 
     try {
-      connection = await mysql.createConnection(config);
-      await connection.connect();
+        connection = await mysql.createConnection(config);
+        await connection.connect();
 
-      const contactInsert = 'INSERT INTO setting (name,  created_at, updated_at) VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)';
+        const contactInsert = 'INSERT INTO setting (name, created_at, updated_at) VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)';
+        const values = [req.body.name];
+        const result = await connection.execute(contactInsert, values);
+        const setting_id = result[0].insertId;
 
-      const values = [
-        req.body.name,
+        const updateProfileQuery = 'UPDATE role_setting SET setting_id = ? WHERE role_id = ?';
+        const userIdAndContactId = [setting_id, req.body.role_id]; // Updated order of parameters
+        await connection.execute(updateProfileQuery, userIdAndContactId);
 
-      ];
-
-      const result = await connection.execute(contactInsert, values);
-      const setting_id = result[0].insertId;
-
-      const updateProfileQuery = 'UPDATE role_setting SET setting_id = ? WHERE role_id = ?';
-      const userIdAndContactId = [req.body.role_id, setting_id];
-      await connection.execute(updateProfileQuery, userIdAndContactId);
-
-
-      return res.status(201).json({
-        status: 201,
-        message: "settings has been created",
-        data: {
-          settingId: setting_id
-        }
-      });
+        return res.status(201).json({
+            status: 201,
+            message: "Settings have been created",
+            data: {
+                settingId: setting_id
+            }
+        });
     } catch (e) {
-      console.error(e);
-      return res.status(500).send(e);
+        console.error(e);
+        return res.status(500).send(e);
     } finally {
-      if (connection && connection.end) {
-        connection.end();
-      }
+        if (connection && connection.end) {
+            connection.end();
+        }
     }
-  },
+},
+
   async addnewpackage(req, res, next)
   {
     let connection;  // Declare connection outside the try block
