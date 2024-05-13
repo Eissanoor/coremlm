@@ -9,4 +9,7 @@ router.post("/addnewroles", FATSDB.addnewroles)
 router.post("/addnewsetting", FATSDB.addnewsetting)
 router.get("/user_profileuserID/:user_id", FATSDB.user_profileuserID)
 router.post("/addnewpackage", FATSDB.addnewpackage)
+router.post("/addnewactivitylog",FATSDB.addnewactivitylog)
+router.post("/addnewtransaction_method",FATSDB.addnewtransaction_method)
+router.post("/addnewtransaction_category",FATSDB.addnewtransaction_category)
 export default router;

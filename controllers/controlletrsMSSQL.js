@@ -78,7 +78,7 @@ const FATSDB = {
       return res.status(500).send("Internal Server Error");
     }
   },
-  //post
+  //-------------------------POST--------------------------------
   async addnewuser(req, res, next) {
     let connection; // Declare connection outside the try block
 
@@ -102,13 +102,11 @@ const FATSDB = {
       const insertprofileuser_id = `INSERT INTO profile (user_id, created_at, updated_at) VALUES (${user_id}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
 
       await connection.execute(insertprofileuser_id, values);
-      return res
-        .status(201)
-        .json({
-          status: 201,
-          message: "user has been created",
-          data: { userId: user_id },
-        });
+      return res.status(201).json({
+        status: 201,
+        message: "user has been created",
+        data: { userId: user_id },
+      });
     } catch (e) {
       console.error(e);
       return res.status(500).send(e);
@@ -268,7 +266,6 @@ const FATSDB = {
       }
     }
   },
-
   async addnewpackage(req, res, next) {
     let connection; // Declare connection outside the try block
 
@@ -289,16 +286,144 @@ const FATSDB = {
       const result = await connection.execute(userInsert, values);
       const packageId = result[0].insertId;
 
-      return res
-        .status(201)
-        .json({
-          status: 201,
-          message: "package has been created",
-          data: { packageId: packageId },
-        });
+      return res.status(201).json({
+        status: 201,
+        message: "package has been created",
+        data: { packageId: packageId },
+      });
     } catch (e) {
       console.error(e);
       return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
+  async addnewactivitylog(req, res, next) {
+    let connection; // Declare connection outside the try block
+
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+
+      const userInsert =
+        "INSERT INTO activity_log (profile_id, description, created_at, updated_at) VALUES (?, ?,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+
+      const values = [req.body.profile_id, req.body.description];
+
+      const result = await connection.execute(userInsert, values);
+      const activitylogId = result[0].insertId;
+
+      return res.status(201).json({
+        status: 201,
+        message: "activitylog has been created",
+        data: { activitylogId: activitylogId },
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
+  async addnewtransaction_method(req, res, next) {
+    let connection; // Declare connection outside the try block
+
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+
+      const userInsert =
+        "INSERT INTO transaction_method (name, description, created_at, updated_at) VALUES (?, ?,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+
+      const values = [req.body.name, req.body.description];
+
+      const result = await connection.execute(userInsert, values);
+      const transaction_methodId = result[0].insertId;
+
+      const transaction_Insert =
+        "INSERT INTO transaction (profile_id, transaction_method_id,amount, created_at, updated_at) VALUES (?, ?,?,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+
+      const transaction_values = [
+        req.body.profile_id,
+        req.body.amount,
+        transaction_methodId,
+      ];
+
+      // Insert transaction
+      await connection.execute(transaction_Insert, transaction_values);
+      const transactionId = result[0].insertId;
+      return res.status(201).json({
+        status: 201,
+        message: "Transaction has been created",
+        data: { transactionId: transactionId },
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({ error: "Internal Server Error" });
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
+  async addnewtransaction_category(req, res, next) {
+    let connection; // Declare connection outside the try block
+
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+
+      const userInsert =
+        "INSERT INTO transaction_category (name, description, created_at, updated_at) VALUES (?, ?,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+
+      const values = [
+        req.body.transaction_category_name,
+        req.body.transaction_category_description,
+      ];
+
+      const result = await connection.execute(userInsert, values);
+      const transaction_category_Id = result[0].insertId;
+
+      const transaction_type_Insert =
+        "INSERT INTO transaction_type (transaction_category_id,name, description, created_at, updated_at) VALUES (?, ?,?,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+
+      const transaction_type_values = [
+        transaction_category_Id,
+        req.body.transaction_type_name,
+        req.body.transaction_type_description,
+      ];
+
+      const transaction_type_result = await connection.execute(
+        transaction_type_Insert,
+        transaction_type_values
+      );
+      const transaction_type_Id = transaction_type_result[0].insertId;
+
+      const transaction_type_Update =
+        "UPDATE transaction SET transaction_category_id = ?, updated_at = CURRENT_TIMESTAMP WHERE profile_id = ?";
+
+      const transactionUpdateValue = [
+        transaction_category_Id,
+
+        req.body.profile_id, // Assuming you have the profile_id value
+      ];
+
+      const transactionUpdateresult = await connection.execute(
+        transaction_type_Update,
+        transactionUpdateValue
+      );
+      return res.status(201).json({
+        status: 201,
+        message: "Transaction category has been created",
+        data: { transaction_category_Id: transaction_category_Id },
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({ error: "Internal Server Error" });
     } finally {
       if (connection && connection.end) {
         connection.end();
