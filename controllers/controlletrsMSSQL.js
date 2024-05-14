@@ -430,5 +430,49 @@ const FATSDB = {
       }
     }
   },
+  async addnewtax(req, res, next) {
+    let connection; // Declare connection outside the try block
+
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+
+      const userInsert =
+        "INSERT INTO taxes ( name, description,  created_at, updated_at) VALUES (?, ?,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+
+      const values = [
+        req.body.name,
+        req.body.description,
+      ];
+
+      const result = await connection.execute(userInsert, values);
+      const taxesId = result[0].insertId;
+      const transaction_type_Update =
+      "UPDATE transaction SET taxes_id = ?, updated_at = CURRENT_TIMESTAMP WHERE profile_id = ?";
+
+    const transactionUpdateValue = [
+      taxesId,
+
+      req.body.profile_id, // Assuming you have the profile_id value
+    ];
+
+    const transactionUpdateresult = await connection.execute(
+      transaction_type_Update,
+      transactionUpdateValue
+    );
+      return res.status(201).json({
+        status: 201,
+        message: "taxes has been created",
+        data: { taxesId: taxesId },
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
 };
 export default FATSDB;

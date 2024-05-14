@@ -12,4 +12,5 @@ router.post("/addnewpackage", FATSDB.addnewpackage)
 router.post("/addnewactivitylog",FATSDB.addnewactivitylog)
 router.post("/addnewtransaction_method",FATSDB.addnewtransaction_method)
 router.post("/addnewtransaction_category",FATSDB.addnewtransaction_category)
+router.post("/addnewtax",FATSDB.addnewtax)
 export default router;
