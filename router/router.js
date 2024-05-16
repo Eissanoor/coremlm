@@ -13,4 +13,8 @@ router.post("/addnewactivitylog",FATSDB.addnewactivitylog)
 router.post("/addnewtransaction_method",FATSDB.addnewtransaction_method)
 router.post("/addnewtransaction_category",FATSDB.addnewtransaction_category)
 router.post("/addnewtax",FATSDB.addnewtax)
+router.post("/loginUser",FATSDB.loginUser)
+router.post("/resetPassword",FATSDB.resetPassword)
+router.post("/passwordchangeotpSend",FATSDB.passwordchangeotpSend)
+router.post("/verifyOTP",FATSDB.verifyOTP)
 export default router;

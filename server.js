@@ -3,6 +3,7 @@ import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path"
+
 const app = express();
 const corsOptions = {
   exposedHeaders: ['Content-Length', 'Authorization'],

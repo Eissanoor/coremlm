@@ -2,6 +2,7 @@
 import path from "path";
 import mysql from "mysql2/promise";
 import { fileURLToPath } from "url";
+import nodemailer from "nodemailer"
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import * as dotenv from "dotenv";
@@ -110,6 +111,189 @@ const FATSDB = {
     } catch (e) {
       console.error(e);
       return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
+  async loginUser(req, res, next) {
+    let connection;
+
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+
+      const { email, password } = req.body;
+
+      // Check if the user exists
+      const userQuery = "SELECT * FROM user WHERE email = ?";
+      const [userRows] = await connection.execute(userQuery, [email]);
+
+      if (userRows.length === 0) {
+        return res.status(404).json({ status: 404, message: "User not found" });
+      }
+
+      const user = userRows[0];
+
+      // Check if the password matches
+      if (user.password !== password) {
+        return res
+          .status(401)
+          .json({ status: 401, message: "Invalid password" });
+      }
+
+      // If everything is okay, generate a token or return user details
+      // For simplicity, let's just return the user details for now
+      return res.status(200).json({
+        status: 200,
+        message: "Login successful",
+        data: {
+          userId: user.id,
+          firstname: user.firstname,
+          lastname: user.lastname,
+          email: user.email,
+          gender: user.gender,
+          created_at: user.created_at,
+          updated_at: user.updated_at,
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
+  async resetPassword(req, res, next) {
+    let connection;
+
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+
+      const { email, newPassword } = req.body;
+
+      // Check if the user exists
+      const userQuery = "SELECT * FROM user WHERE email = ?";
+      const [userRows] = await connection.execute(userQuery, [email]);
+
+      if (userRows.length === 0) {
+        return res.status(404).json({ status: 404, message: "User not found" });
+      }
+
+      const user = userRows[0];
+
+      // Update the user's password in the database
+      const updateUserPassword = "UPDATE user SET password = ? WHERE id = ?";
+      await connection.execute(updateUserPassword, [newPassword, user.id]);
+
+      return res
+        .status(200)
+        .json({ status: 200, message: "Password reset successful" });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
+  async passwordchangeotpSend(req, res) {
+    let connection;
+
+    try {
+        connection = await mysql.createConnection(config);
+        await connection.connect();
+
+        const email = req.body.email;
+
+        // Check if the email exists in the database
+        const [userRows] = await connection.execute(
+            "SELECT * FROM user WHERE email = ?",
+            [email]
+        );
+
+        if (userRows.length === 0) {
+            console.log("You are not a registered email");
+            return res.status(404).json("You are not a registered email");
+        }
+
+        const random = Math.floor(Math.random() * 10000) + 1;
+
+        const expireIn = new Date(Date.now() + 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
+
+        const otpData = {
+            email: req.body.email,
+            otp: random,
+            expireIn: expireIn,
+        };
+
+        // Insert OTP data into the database
+        await connection.execute(
+            "INSERT INTO otp (email, otp, expireIn) VALUES (?, ?, ?)",
+            [otpData.email, otpData.otp, otpData.expireIn]
+        );
+
+        // Send email with the OTP
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: "eissaanoor@gmail.com",
+                pass: "asqgbvuvawbtjnqz",
+            },
+        });
+
+        const mailOptions = {
+            from: "eissaanoor@gmail.com",
+            to: email,
+            subject: "Sending email using Node.js",
+            text: `ChangePassword OTP ${random}`,
+        };
+
+        // Send email and wait for it to complete
+        await transporter.sendMail(mailOptions);
+
+        res.status(201).json("OTP sent successfully");
+    } catch (error) {
+        console.error(error);
+        res.status(500).json(error.message);
+    } finally {
+        if (connection && connection.end) {
+            connection.end();
+        }
+    }
+},
+
+  async verifyOTP(req, res) {
+    let connection;
+  
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+  
+      const { email, otp } = req.body;
+  
+      // Check if the OTP exists in the database for the provided email
+      const [otpRows] = await connection.execute(
+        "SELECT * FROM otp WHERE email = ? AND otp = ? AND expireIn > CURRENT_TIMESTAMP",
+        [email, otp]
+      );
+  
+      if (otpRows.length === 0) {
+        console.log("Invalid or expired OTP");
+        return res.status(400).json("Invalid or expired OTP");
+      }
+  
+      // If OTP is valid, you can proceed with further actions like password change
+  
+      res.status(200).json("OTP verified successfully");
+    } catch (error) {
+      console.error(error);
+      res.status(500).json(error.message);
     } finally {
       if (connection && connection.end) {
         connection.end();
@@ -440,26 +624,23 @@ const FATSDB = {
       const userInsert =
         "INSERT INTO taxes ( name, description,  created_at, updated_at) VALUES (?, ?,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
 
-      const values = [
-        req.body.name,
-        req.body.description,
-      ];
+      const values = [req.body.name, req.body.description];
 
       const result = await connection.execute(userInsert, values);
       const taxesId = result[0].insertId;
       const transaction_type_Update =
-      "UPDATE transaction SET taxes_id = ?, updated_at = CURRENT_TIMESTAMP WHERE profile_id = ?";
+        "UPDATE transaction SET taxes_id = ?, updated_at = CURRENT_TIMESTAMP WHERE profile_id = ?";
 
-    const transactionUpdateValue = [
-      taxesId,
+      const transactionUpdateValue = [
+        taxesId,
 
-      req.body.profile_id, // Assuming you have the profile_id value
-    ];
+        req.body.profile_id, // Assuming you have the profile_id value
+      ];
 
-    const transactionUpdateresult = await connection.execute(
-      transaction_type_Update,
-      transactionUpdateValue
-    );
+      const transactionUpdateresult = await connection.execute(
+        transaction_type_Update,
+        transactionUpdateValue
+      );
       return res.status(201).json({
         status: 201,
         message: "taxes has been created",
