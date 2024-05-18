@@ -192,7 +192,6 @@ const FATSDB = {
       }
     }
   },
-  
   async loginUser(req, res, next) {
     let connection;
 
@@ -346,7 +345,6 @@ const FATSDB = {
       }
     }
   },
-
   async verifyOTP(req, res) {
     let connection;
 
@@ -442,6 +440,98 @@ const FATSDB = {
       }
     }
   },
+  async updateContact(req, res, next) {
+    let connection;
+  
+    try {
+      // Ensure the ID parameter is present
+      const { id } = req.params;
+      if (!id) {
+        return res.status(400).json({
+          status: 400,
+          message: "ID is required",
+        });
+      }
+  
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+  
+      // Fetch existing contact data
+      const [existingContact] = await connection.execute("SELECT * FROM contact WHERE id = ?", [id]);
+  
+      if (existingContact.length === 0) {
+        return res.status(404).json({
+          status: 404,
+          message: "Contact not found",
+        });
+      }
+  
+      const contact = existingContact[0];
+  
+      // Use existing data if no new data is provided
+      const updatedCountry = req.body.country || contact.country;
+      const updatedState = req.body.state || contact.state;
+      const updatedCity = req.body.city || contact.city;
+      const updatedPostcode = req.body.postcode || contact.postcode;
+      const updatedMobile = req.body.mobile || contact.mobile;
+      const updatedName = req.body.name || contact.name;
+      const updatedAddress1 = req.body.address1 || contact.address1;
+      const updatedAddress2 = req.body.address2 || contact.address2;
+  
+      const contactUpdate = `
+        UPDATE contact
+        SET country = ?, state = ?, city = ?, postcode = ?, mobile = ?, name = ?, address1 = ?, address2 = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `;
+  
+      const values = [
+        updatedCountry,
+        updatedState,
+        updatedCity,
+        updatedPostcode,
+        updatedMobile,
+        updatedName,
+        updatedAddress1,
+        updatedAddress2,
+        id
+      ];
+  
+      const [result] = await connection.execute(contactUpdate, values);
+  
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          status: 404,
+          message: "Contact not found",
+        });
+      }
+  
+      // Return the updated contact data
+      return res.status(200).json({
+        status: 200,
+        message: "Contact has been updated successfully",
+        data: {
+          id: id,
+          country: updatedCountry,
+          state: updatedState,
+          city: updatedCity,
+          postcode: updatedPostcode,
+          mobile: updatedMobile,
+          name: updatedName,
+          address1: updatedAddress1,
+          address2: updatedAddress2,
+          updated_at: new Date() // assuming the database updates the timestamp automatically
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
+  
   async addnewroles(req, res, next) {
     let connection;
 
