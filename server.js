@@ -6,7 +6,9 @@ import path from "path"
 
 const app = express();
 const corsOptions = {
-  origin: '*', // Allow all origins
+  origin: [
+    "https://user-mlm.vercel.app"
+  ] // Allow all origins
 };
 
 // Use the CORS middleware with the specified options
