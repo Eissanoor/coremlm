@@ -6,8 +6,10 @@ import path from "path"
 
 const app = express();
 const corsOptions = {
-  origin: "*"
+  origin: '*', // Allow all origins
 };
+
+// Use the CORS middleware with the specified options
 app.use(cors(corsOptions));
 app.use(cookieParser());
 // app.use("/uploads", express.static(__dirname + "/uploads"));
