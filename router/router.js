@@ -19,5 +19,6 @@ router.post("/loginUser",FATSDB.loginUser)
 router.post("/resetPassword",FATSDB.resetPassword)
 router.post("/passwordchangeotpSend",FATSDB.passwordchangeotpSend)
 router.post("/verifyOTP",FATSDB.verifyOTP)
+router.put("/addnewpayment_detail",FATSDB.addnewpayment_detail)
 router.put("/addnewbank_details",FATSDB.addnewbank_details)
 export default router;

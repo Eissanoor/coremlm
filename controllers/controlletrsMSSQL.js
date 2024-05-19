@@ -119,56 +119,59 @@ const FATSDB = {
   },
   async updateUser(req, res, next) {
     let connection;
-  
+
     try {
       connection = await mysql.createConnection(config);
       await connection.connect();
-  
+
       const userId = req.params.id;
-  
+
       // Fetch existing user data
-      const [existingUser] = await connection.execute("SELECT * FROM user WHERE id = ?", [userId]);
-  
+      const [existingUser] = await connection.execute(
+        "SELECT * FROM user WHERE id = ?",
+        [userId]
+      );
+
       if (existingUser.length === 0) {
         return res.status(404).json({
           status: 404,
           message: "User not found",
         });
       }
-  
+
       const user = existingUser[0];
-  
+
       // Use existing data if no new data is provided
       const updatedFirstName = req.body.firstname || user.firstname;
       const updatedLastName = req.body.lastname || user.lastname;
       const updatedGender = req.body.gender || user.gender;
       const updatedTwitter = req.body.twitter || user.twitter;
       const updatedFacebook = req.body.facebook || user.facebook;
-  
+
       const userUpdate = `
         UPDATE user
         SET firstname = ?, lastname = ?, gender = ?, twitter = ?, facebook = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `;
-  
+
       const values = [
         updatedFirstName,
         updatedLastName,
         updatedGender,
         updatedTwitter,
         updatedFacebook,
-        userId
+        userId,
       ];
-  
+
       const [result] = await connection.execute(userUpdate, values);
-  
+
       if (result.affectedRows === 0) {
         return res.status(404).json({
           status: 404,
           message: "User not found",
         });
       }
-  
+
       // Return the updated (or existing) user data
       return res.status(200).json({
         status: 200,
@@ -180,7 +183,7 @@ const FATSDB = {
           gender: updatedGender,
           twitter: updatedTwitter,
           facebook: updatedFacebook,
-          updated_at: new Date() // assuming the database updates the timestamp automatically
+          updated_at: new Date(), // assuming the database updates the timestamp automatically
         },
       });
     } catch (e) {
@@ -442,7 +445,7 @@ const FATSDB = {
   },
   async updateContact(req, res, next) {
     let connection;
-  
+
     try {
       // Ensure the ID parameter is present
       const { id } = req.params;
@@ -452,22 +455,25 @@ const FATSDB = {
           message: "ID is required",
         });
       }
-  
+
       connection = await mysql.createConnection(config);
       await connection.connect();
-  
+
       // Fetch existing contact data
-      const [existingContact] = await connection.execute("SELECT * FROM contact WHERE id = ?", [id]);
-  
+      const [existingContact] = await connection.execute(
+        "SELECT * FROM contact WHERE id = ?",
+        [id]
+      );
+
       if (existingContact.length === 0) {
         return res.status(404).json({
           status: 404,
           message: "Contact not found",
         });
       }
-  
+
       const contact = existingContact[0];
-  
+
       // Use existing data if no new data is provided
       const updatedCountry = req.body.country || contact.country;
       const updatedState = req.body.state || contact.state;
@@ -477,13 +483,13 @@ const FATSDB = {
       const updatedName = req.body.name || contact.name;
       const updatedAddress1 = req.body.address1 || contact.address1;
       const updatedAddress2 = req.body.address2 || contact.address2;
-  
+
       const contactUpdate = `
         UPDATE contact
         SET country = ?, state = ?, city = ?, postcode = ?, mobile = ?, name = ?, address1 = ?, address2 = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `;
-  
+
       const values = [
         updatedCountry,
         updatedState,
@@ -493,18 +499,18 @@ const FATSDB = {
         updatedName,
         updatedAddress1,
         updatedAddress2,
-        id
+        id,
       ];
-  
+
       const [result] = await connection.execute(contactUpdate, values);
-  
+
       if (result.affectedRows === 0) {
         return res.status(404).json({
           status: 404,
           message: "Contact not found",
         });
       }
-  
+
       // Return the updated contact data
       return res.status(200).json({
         status: 200,
@@ -519,7 +525,7 @@ const FATSDB = {
           name: updatedName,
           address1: updatedAddress1,
           address2: updatedAddress2,
-          updated_at: new Date() // assuming the database updates the timestamp automatically
+          updated_at: new Date(), // assuming the database updates the timestamp automatically
         },
       });
     } catch (e) {
@@ -535,64 +541,118 @@ const FATSDB = {
     let connection; // Declare connection outside the try block
 
     try {
-        connection = await mysql.createConnection(config);
-        await connection.connect();
+      connection = await mysql.createConnection(config);
+      await connection.connect();
 
-        const userInsert =
-            "INSERT INTO bank_details (bank_name, branch_name, account_holder, account_number, IFSC_code, pan_number, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+      const userInsert =
+        "INSERT INTO bank_details (bank_name, branch_name, account_holder, account_number, IFSC_code, pan_number, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
 
-        const values = [
-            req.body.bank_name || null,
-            req.body.branch_name || null,
-            req.body.account_holder || null,
-            req.body.account_number || null,
-            req.body.IFSC_code || null,
-            req.body.pan_number || null,
-        ];
+      const values = [
+        req.body.bank_name || null,
+        req.body.branch_name || null,
+        req.body.account_holder || null,
+        req.body.account_number || null,
+        req.body.IFSC_code || null,
+        req.body.pan_number || null,
+      ];
 
-        // Check for undefined values
-        for (let i = 0; i < values.length; i++) {
-            if (values[i] === undefined) {
-                return res.status(400).json({
-                    status: 400,
-                    message: `Missing required field at index ${i}`,
-                });
-            }
+      // Check for undefined values
+      for (let i = 0; i < values.length; i++) {
+        if (values[i] === undefined) {
+          return res.status(400).json({
+            status: 400,
+            message: `Missing required field at index ${i}`,
+          });
         }
+      }
 
-        const result = await connection.execute(userInsert, values);
-        const bank_details_id = result[0].insertId;
-        
-        // Update the profile with the new bank_details_id based on user_id
-        const userId = req.body.user_id;
-        if (!userId) {
-            return res.status(400).json({
-                status: 400,
-                message: "Missing required field: user_id",
-            });
-        }
-        
-        const updateProfileQuery = 
-            "UPDATE profile SET bank_details_id = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?";
+      const result = await connection.execute(userInsert, values);
+      const bank_details_id = result[0].insertId;
 
-        await connection.execute(updateProfileQuery, [bank_details_id, userId]);
-
-        return res.status(201).json({
-            status: 201,
-            message: "Bank details have been created and profile updated",
-            data: { bank_details_id: bank_details_id },
+      // Update the profile with the new bank_details_id based on user_id
+      const userId = req.body.user_id;
+      if (!userId) {
+        return res.status(400).json({
+          status: 400,
+          message: "Missing required field: user_id",
         });
+      }
+
+      const updateProfileQuery =
+        "UPDATE profile SET bank_details_id = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?";
+
+      await connection.execute(updateProfileQuery, [bank_details_id, userId]);
+
+      return res.status(201).json({
+        status: 201,
+        message: "Bank details have been created and profile updated",
+        data: { bank_details_id: bank_details_id },
+      });
     } catch (e) {
-        console.error(e);
-        return res.status(500).send(e);
+      console.error(e);
+      return res.status(500).send(e);
     } finally {
-        if (connection && connection.end) {
-            connection.end();
-        }
+      if (connection && connection.end) {
+        connection.end();
+      }
     }
-},
+  },
+  async addnewpayment_detail(req, res, next) {
+    let connection; // Declare connection outside the try block
 
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
 
+      const userInsert =
+        "INSERT INTO payment_detail (payment_detail_name, payment_detail_method, created_at, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+
+      const values = [
+        req.body.payment_detail_name || null,
+        req.body.payment_detail_method || null,
+      ];
+
+      // Check for undefined values
+      for (let i = 0; i < values.length; i++) {
+        if (values[i] === undefined) {
+          return res.status(400).json({
+            status: 400,
+            message: `Missing required field at index ${i}`,
+          });
+        }
+      }
+
+      const result = await connection.execute(userInsert, values);
+      const payment_details_id = result[0].insertId;
+
+      // Update the profile with the new payment_details_id based on user_id
+      const userId = req.body.user_id;
+      if (!userId) {
+        return res.status(400).json({
+          status: 400,
+          message: "Missing required field: user_id",
+        });
+      }
+
+      const updateProfileQuery =
+        "UPDATE profile SET payment_detail_id = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?";
+
+      await connection.execute(updateProfileQuery, [payment_details_id, userId]);
+
+      return res.status(201).json({
+        status: 201,
+        message: "payment details have been created and profile updated",
+        data: { payment_details_id: payment_details_id },
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
   async addnewroles(req, res, next) {
     let connection;
 
