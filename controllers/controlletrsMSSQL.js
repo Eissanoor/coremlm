@@ -531,7 +531,68 @@ const FATSDB = {
       }
     }
   },
-  
+  async addnewbank_details(req, res, next) {
+    let connection; // Declare connection outside the try block
+
+    try {
+        connection = await mysql.createConnection(config);
+        await connection.connect();
+
+        const userInsert =
+            "INSERT INTO bank_details (bank_name, branch_name, account_holder, account_number, IFSC_code, pan_number, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+
+        const values = [
+            req.body.bank_name || null,
+            req.body.branch_name || null,
+            req.body.account_holder || null,
+            req.body.account_number || null,
+            req.body.IFSC_code || null,
+            req.body.pan_number || null,
+        ];
+
+        // Check for undefined values
+        for (let i = 0; i < values.length; i++) {
+            if (values[i] === undefined) {
+                return res.status(400).json({
+                    status: 400,
+                    message: `Missing required field at index ${i}`,
+                });
+            }
+        }
+
+        const result = await connection.execute(userInsert, values);
+        const bank_details_id = result[0].insertId;
+        
+        // Update the profile with the new bank_details_id based on user_id
+        const userId = req.body.user_id;
+        if (!userId) {
+            return res.status(400).json({
+                status: 400,
+                message: "Missing required field: user_id",
+            });
+        }
+        
+        const updateProfileQuery = 
+            "UPDATE profile SET bank_details_id = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?";
+
+        await connection.execute(updateProfileQuery, [bank_details_id, userId]);
+
+        return res.status(201).json({
+            status: 201,
+            message: "Bank details have been created and profile updated",
+            data: { bank_details_id: bank_details_id },
+        });
+    } catch (e) {
+        console.error(e);
+        return res.status(500).send(e);
+    } finally {
+        if (connection && connection.end) {
+            connection.end();
+        }
+    }
+},
+
+
   async addnewroles(req, res, next) {
     let connection;
 
