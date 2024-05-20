@@ -1,5 +1,6 @@
 import express from "express";
 const router = express.Router();
+import upload from "../config/multerConfig.js"
 import FATSDB from "../controllers/controlletrsMSSQL.js";
 router.get("/allgetprofile", FATSDB.allgetprofile)
 router.get("/user_profile", FATSDB.user_profile)
@@ -21,4 +22,6 @@ router.post("/passwordchangeotpSend",FATSDB.passwordchangeotpSend)
 router.post("/verifyOTP",FATSDB.verifyOTP)
 router.put("/addnewpayment_detail",FATSDB.addnewpayment_detail)
 router.put("/addnewbank_details",FATSDB.addnewbank_details)
+
+router.post("/addnewmedia",upload.single("file"), FATSDB.addnewmedia)
 export default router;

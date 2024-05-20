@@ -3,10 +3,20 @@ import path from "path";
 import mysql from "mysql2/promise";
 import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
+
+import { createClient } from '@supabase/supabase-js'
+
+
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import * as dotenv from "dotenv";
+import { log } from "console";
 dotenv.config({ path: path.join(__dirname, "../.env") });
+const supabaseUrl = 'https://hcrhtgjfjnwmyxrjoxkh.supabase.co'
+const supabaseKey = process.env.SUPABASE_KEY
+const supabasepass = process.env.supa
+const supabase = createClient(supabaseUrl, supabaseKey,supabasepass)
 let host = process.env.host;
 let user = process.env.user;
 let password = process.env.password;
@@ -19,6 +29,7 @@ const config = {
   database: database,
   port: port,
 };
+
 const FATSDB = {
   async allgetprofile(req, res, next) {
     try {
@@ -935,6 +946,65 @@ const FATSDB = {
         status: 201,
         message: "taxes has been created",
         data: { taxesId: taxesId },
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
+  async addnewmedia(req, res, next) {
+    let connection; // Declare connection outside the try block
+
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+
+      if (!req.file) {
+        return res.status(400).json({
+          status: 400,
+          message: "No file uploaded",
+        });
+      }
+  
+      const { file } = req;
+      
+      const fileName = file.originalname; // Use the original filename without any prefix
+    const fileType = file.mimetype
+      const options = {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.mimetype, // Set the correct MIME type
+      };
+      const { data, error } = await supabase.storage.from('test_bucket').upload(fileName, file.buffer, options);
+      if (error) {
+        throw error;
+      }
+
+      const fileUrl = `${supabaseUrl}/storage/v1/object/public/test_bucket/${fileName}`;
+
+ 
+
+
+       // Assuming `profile_id`, `title`, `description`, `file_type`, and `visibility` come from the request body
+    const { profile_id, title, description,  visibility } = req.body;
+    const values = [profile_id, title, description, fileType, fileUrl, new Date(), visibility];
+
+    const userInsert = `
+      INSERT INTO upload_material (profile_id, title, description, file_type, file_path, upload_date, visibility, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `;
+
+    const [result] = await connection.execute(userInsert, values);
+    const mediaID = result.insertId;
+  
+      return res.status(201).json({
+        status: 201,
+        message: "Media has been created",
+        data: { mediaID: mediaID,fileUrl:fileUrl },
       });
     } catch (e) {
       console.error(e);
