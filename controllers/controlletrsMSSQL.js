@@ -990,8 +990,8 @@ const FATSDB = {
 
 
        // Assuming `profile_id`, `title`, `description`, `file_type`, and `visibility` come from the request body
-    const { profile_id, title, description,  visibility } = req.body;
-    const values = [profile_id, title, description, fileType, fileUrl, new Date(), visibility];
+    const { profile_id, title, description, file_type, visibility } = req.body;
+    const values = [profile_id, title, description, file_type, fileUrl, new Date(), visibility];
 
     const userInsert = `
       INSERT INTO upload_material (profile_id, title, description, file_type, file_path, upload_date, visibility, created_at, updated_at) 
