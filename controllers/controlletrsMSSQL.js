@@ -957,7 +957,7 @@ const FATSDB = {
     }
   },
   async addnewmedia(req, res, next) {
-    let connection; // Declare connection outside the try block
+    let connection; 
 
     try {
       connection = await mysql.createConnection(config);
