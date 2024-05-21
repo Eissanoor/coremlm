@@ -3,7 +3,7 @@ import path from "path";
 import mysql from "mysql2/promise";
 import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
-
+import fs from "fs"
 import { createClient } from '@supabase/supabase-js'
 
 
@@ -13,10 +13,10 @@ const __dirname = path.dirname(__filename);
 import * as dotenv from "dotenv";
 import { log } from "console";
 dotenv.config({ path: path.join(__dirname, "../.env") });
-const supabaseUrl = 'https://hcrhtgjfjnwmyxrjoxkh.supabase.co'
+
+const supabaseUrl = process.env.supabaseUrl
 const supabaseKey = process.env.SUPABASE_KEY
-const supabasepass = process.env.supa
-const supabase = createClient(supabaseUrl, supabaseKey,supabasepass)
+const supabase = createClient(supabaseUrl, supabaseKey)
 let host = process.env.host;
 let user = process.env.user;
 let password = process.env.password;
@@ -958,53 +958,61 @@ const FATSDB = {
   },
   async addnewmedia(req, res, next) {
     let connection; 
-
+  
     try {
       connection = await mysql.createConnection(config);
       await connection.connect();
-
-      if (!req.file) {
-        return res.status(400).json({
-          status: 400,
-          message: "No file uploaded",
-        });
+  
+      const file = req.file;
+     const fileName = file.originalname
+      if (!file) {
+        return res.status(400).json({ error: 'No file uploaded' });
       }
   
-      const { file } = req;
-      
-      const fileName = file.originalname; // Use the original filename without any prefix
-    const fileType = file.mimetype
-      const options = {
-        cacheControl: '3600',
-        upsert: false,
-        contentType: file.mimetype, // Set the correct MIME type
-      };
-      const { data, error } = await supabase.storage.from('test_bucket').upload(fileName, file.buffer, options);
+      // Log the file object to debug
+      console.log('File object:', file);
+  
+      // Read the file from the temporary upload location
+      const { path, originalname } = file;
+  
+      // Log the path to debug
+      console.log('File path:', path);
+  
+      // Upload the file to Supabase storage
+      const { data, error } = await supabase.storage
+        .from('core') // Replace with your actual bucket name
+        .upload(`uploads/${originalname}`, fs.createReadStream(path), {
+          contentType: file.mimetype,
+          cacheControl: '3600',
+          upsert: false,
+          duplex: 'half', // Add this line to specify the duplex option
+        });
+  console.log(data);
       if (error) {
         throw error;
       }
-
-      const fileUrl = `${supabaseUrl}/storage/v1/object/public/test_bucket/${fileName}`;
-
- 
-
-
-       // Assuming `profile_id`, `title`, `description`, `file_type`, and `visibility` come from the request body
-    const { profile_id, title, description, file_type, visibility } = req.body;
-    const values = [profile_id, title, description, file_type, fileUrl, new Date(), visibility];
-
-    const userInsert = `
-      INSERT INTO upload_material (profile_id, title, description, file_type, file_path, upload_date, visibility, created_at, updated_at) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-    `;
-
-    const [result] = await connection.execute(userInsert, values);
-    const mediaID = result.insertId;
+  
+      const fileUrl = `${supabaseUrl}/storage/v1/object/public/core/uploads/${fileName}`;
+  
+  
+      // Assuming `profile_id`, `title`, `description`, `file_type`, and `visibility` come from the request body
+      const { profile_id, title, description, file_type, visibility } = req.body;
+      const values = [profile_id, title, description, file_type, fileUrl, new Date(), visibility];
+  
+      const userInsert = `
+        INSERT INTO upload_material (profile_id, title, description, file_type, file_path, upload_date, visibility, created_at, updated_at) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `;
+  
+      const [result] = await connection.execute(userInsert, values);
+      const mediaID = result.insertId;
+  
+      console.log('Database insert successful, mediaID:', mediaID);
   
       return res.status(201).json({
         status: 201,
         message: "Media has been created",
-        data: { mediaID: mediaID,fileUrl:fileUrl },
+        data: { mediaID: mediaID, fileUrl: fileUrl },
       });
     } catch (e) {
       console.error(e);
@@ -1014,6 +1022,7 @@ const FATSDB = {
         connection.end();
       }
     }
-  },
+  }
+  
 };
 export default FATSDB;
