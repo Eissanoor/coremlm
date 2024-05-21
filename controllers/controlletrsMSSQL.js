@@ -969,14 +969,12 @@ const FATSDB = {
         return res.status(400).json({ error: 'No file uploaded' });
       }
   
-      // Log the file object to debug
-      console.log('File object:', file);
+      
   
       // Read the file from the temporary upload location
       const { path, originalname } = file;
   
-      // Log the path to debug
-      console.log('File path:', path);
+    
   
       // Upload the file to Supabase storage
       const { data, error } = await supabase.storage
@@ -987,7 +985,7 @@ const FATSDB = {
           upsert: false,
           duplex: 'half', // Add this line to specify the duplex option
         });
-  console.log(data);
+  
       if (error) {
         throw error;
       }
@@ -1007,7 +1005,7 @@ const FATSDB = {
       const [result] = await connection.execute(userInsert, values);
       const mediaID = result.insertId;
   
-      console.log('Database insert successful, mediaID:', mediaID);
+      
   
       return res.status(201).json({
         status: 201,
