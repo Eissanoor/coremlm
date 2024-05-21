@@ -24,4 +24,5 @@ router.put("/addnewpayment_detail",FATSDB.addnewpayment_detail)
 router.put("/addnewbank_details",FATSDB.addnewbank_details)
 
 router.post("/addnewmedia",upload.single("file"), FATSDB.addnewmedia)
+router.put("/updateprofile/:id",upload.single("file"), FATSDB.updateprofile)
 export default router;

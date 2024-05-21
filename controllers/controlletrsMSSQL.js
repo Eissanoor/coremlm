@@ -93,27 +93,43 @@ const FATSDB = {
   //-------------------------POST--------------------------------
   async addnewuser(req, res, next) {
     let connection; // Declare connection outside the try block
-
+  
     try {
       connection = await mysql.createConnection(config);
       await connection.connect();
-
+  
       const userInsert =
         "INSERT INTO user (firstname, lastname, email, password, gender, created_at, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
-
-      const values = [
+  
+      const userValues = [
         req.body.firstname,
         req.body.lastname,
         req.body.email,
         req.body.password,
         req.body.gender,
       ];
-
-      const result = await connection.execute(userInsert, values);
-      const user_id = result[0].insertId;
-      const insertprofileuser_id = `INSERT INTO profile (user_id, created_at, updated_at) VALUES (${user_id}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
-
-      await connection.execute(insertprofileuser_id, values);
+  
+      const [userResult] = await connection.execute(userInsert, userValues);
+      const user_id = userResult.insertId;
+  
+      const insertContactData = `INSERT INTO contact (created_at, updated_at) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+  
+      const [contactResult] = await connection.execute(insertContactData);
+      const contact_id = contactResult.insertId;
+  
+      const bankdetails = `INSERT INTO bank_details (created_at, updated_at) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+  
+      const [bankdetailsresult] = await connection.execute(bankdetails);
+      const bankdetailsresult_id = bankdetailsresult.insertId;
+      const Paymnet = `INSERT INTO bank_details (created_at, updated_at) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+  
+      const [Paymnetresult] = await connection.execute(Paymnet);
+      const Paymnetresult_id = Paymnetresult.insertId;
+      const insertProfileUser = `INSERT INTO profile (user_id, contact_id, bank_details_id,payment_detail_id,created_at, updated_at) VALUES (?, ?,?,?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+  
+      const profileValues = [user_id, contact_id,bankdetailsresult_id,Paymnetresult_id];
+      await connection.execute(insertProfileUser, profileValues);
+  
       return res.status(201).json({
         status: 201,
         message: "user has been created",
@@ -128,6 +144,7 @@ const FATSDB = {
       }
     }
   },
+  
   async updateUser(req, res, next) {
     let connection;
 
@@ -1020,7 +1037,79 @@ const FATSDB = {
         connection.end();
       }
     }
+  },
+  async updateprofile(req,res){
+    const getPublicUrl = (bucket, path) => {
+      return `${supabaseUrl.replace('.co', '.in')}/storage/v1/object/public/${bucket}/${path}`;
+    };
+    const { id } = req.params; // ID of the record to update
+    let connection; 
+  try {
+    const file = req.file;
+    
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Read the file from the temporary upload location
+    const { path, originalname } = file;
+
+    
+
+    // Read the file from the temporary upload location
+    const { path: filePath, originalname: fileName } = file;
+
+    connection = await mysql.createConnection(config);
+    await connection.connect();
+    const [rows] = await connection.execute('SELECT file_path FROM upload_material WHERE id = ?', [id]);
+
+    if (rows.length === 0) {
+      await connection.end();
+      return res.status(404).json({ error: 'Record not found' });
+    }
+
+    const oldUrl = rows[0].file_path;
+    const oldFileName = oldUrl.split('/').pop();
+
+    // Delete the old file from Supabase
+    const { error: deleteError } = await supabase.storage
+      .from('core') // Replace with your actual bucket name
+      .remove([`uploads/${oldFileName}`]);
+
+    if (deleteError) {
+      console.error(deleteError);
+      return res.status(500).json({ error: 'Failed to delete old file' });
+    }
+
+    // Upload the new file to Supabase storage
+    const { data, error: uploadError } = await supabase.storage
+      .from('core') // Replace with your actual bucket name
+      .upload(`uploads/${fileName}`, fs.createReadStream(filePath), {
+        contentType: file.mimetype,
+        cacheControl: '3600',
+        upsert: true, // Allow replacing the old file
+        duplex: 'half', // Add this line to specify the duplex option
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    // Get the public URL of the uploaded file
+    const publicUrl = getPublicUrl('core', `uploads/${fileName}`);
+    
+    // Update the public URL in MySQL database
+    await connection.execute(
+      'UPDATE upload_material SET file_path = ? WHERE id = ?',
+      [publicUrl, id]
+    );
+    await connection.end();
+
+    res.status(200).json({ message: 'File uploaded and file_path updated successfully', data, publicUrl });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to upload file and update URL' });
   }
-  
+  }
 };
 export default FATSDB;
