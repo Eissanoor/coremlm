@@ -1174,27 +1174,20 @@ const FATSDB = {
       const contact = existingContact[0];
 
       // Use existing data if no new data is provided
-      const updated = req.body.bank_name || contact.bank_name;
-      const updatedbranch_name = req.body.branch_name || contact.branch_name;
-      const updatedaccount_holder = req.body.account_holder || contact.account_holder;
-      const updatedaccount_number = req.body.account_number || contact.account_number;
-      const updatedIFSC_code = req.body.IFSC_code || contact.IFSC_code;
-      const updatedpan_number = req.body.pan_number || contact.pan_number;
+      const updatedpayment_detail_name = req.body.payment_detail_name || contact.payment_detail_name;
+      const updatedpayment_detail_method = req.body.payment_detail_method || contact.payment_detail_method;
+   
       
 
       const contactUpdate = `
         UPDATE payment_detail
-        SET bank_name = ?, branch_name = ?, account_holder = ?, account_number = ?, IFSC_code = ?, pan_number = ?, updated_at = CURRENT_TIMESTAMP
+        SET payment_detail_name = ?, payment_detail_method = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `;
 
       const values = [
-        updated,
-        updatedbranch_name,
-        updatedaccount_holder,
-        updatedaccount_number,
-        updatedIFSC_code,
-        updatedpan_number,
+        updatedpayment_detail_name,
+        updatedpayment_detail_method,
         id,
       ];
 
@@ -1207,18 +1200,15 @@ const FATSDB = {
         });
       }
 
-      // Return the updated contact data
+      // Return the  contact data
       return res.status(200).json({
         status: 200,
         message: "payment_detail has been updated successfully",
         data: {
           id: id,
-          country: updated,
-          state: updatedbranch_name,
-          city: updatedaccount_holder,
-          postcode: updatedaccount_number,
-          mobile: updatedIFSC_code,
-          name: updatedpan_number,
+          payment_detail_name: updatedpayment_detail_name,
+          payment_detail_method: updatedpayment_detail_method,
+          
           updated_at: new Date(), // assuming the database updates the timestamp automatically
         },
       });

@@ -24,6 +24,7 @@ router.put("/addnewpayment_detail",FATSDB.addnewpayment_detail)
 router.post("/addnewmedia",upload.single("file"), FATSDB.addnewmedia)
 router.put("/updateprofile/:id",upload.single("file"), FATSDB.updateprofile)
 router.put("/updatebank_details/:id",FATSDB.updatebank_details)
+router.put("/updatepayment_detail/:id",FATSDB.updatepayment_detail)
 router.get("/",(req,res)=>{
     res.json({statusCode:200, message:"Project is Running", Data:null})
 })
