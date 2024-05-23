@@ -565,66 +565,6 @@ const FATSDB = {
       }
     }
   },
-  async addnewbank_details(req, res, next) {
-    let connection; // Declare connection outside the try block
-
-    try {
-      connection = await mysql.createConnection(config);
-      await connection.connect();
-
-      const userInsert =
-        "INSERT INTO bank_details (bank_name, branch_name, account_holder, account_number, IFSC_code, pan_number, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
-
-      const values = [
-        req.body.bank_name || null,
-        req.body.branch_name || null,
-        req.body.account_holder || null,
-        req.body.account_number || null,
-        req.body.IFSC_code || null,
-        req.body.pan_number || null,
-      ];
-
-      // Check for undefined values
-      for (let i = 0; i < values.length; i++) {
-        if (values[i] === undefined) {
-          return res.status(400).json({
-            status: 400,
-            message: `Missing required field at index ${i}`,
-          });
-        }
-      }
-
-      const result = await connection.execute(userInsert, values);
-      const bank_details_id = result[0].insertId;
-
-      // Update the profile with the new bank_details_id based on user_id
-      const userId = req.body.user_id;
-      if (!userId) {
-        return res.status(400).json({
-          status: 400,
-          message: "Missing required field: user_id",
-        });
-      }
-
-      const updateProfileQuery =
-        "UPDATE profile SET bank_details_id = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?";
-
-      await connection.execute(updateProfileQuery, [bank_details_id, userId]);
-
-      return res.status(201).json({
-        status: 201,
-        message: "Bank details have been created and profile updated",
-        data: { bank_details_id: bank_details_id },
-      });
-    } catch (e) {
-      console.error(e);
-      return res.status(500).send(e);
-    } finally {
-      if (connection && connection.end) {
-        connection.end();
-      }
-    }
-  },
   async addnewpayment_detail(req, res, next) {
     let connection; // Declare connection outside the try block
 
@@ -1110,6 +1050,95 @@ const FATSDB = {
     console.error(error);
     res.status(500).json({ error: 'Failed to upload file and update URL' });
   }
-  }
+  },
+  async updatebank_details(req, res, next) {
+    let connection;
+
+    try {
+      // Ensure the ID parameter is present
+      const { id } = req.params;
+      if (!id) {
+        return res.status(400).json({
+          status: 400,
+          message: "ID is required",
+        });
+      }
+
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+
+      // Fetch existing contact data
+      const [existingContact] = await connection.execute(
+        "SELECT * FROM bank_details WHERE id = ?",
+        [id]
+      );
+
+      if (existingContact.length === 0) {
+        return res.status(404).json({
+          status: 404,
+          message: "bank_details not found",
+        });
+      }
+
+      const contact = existingContact[0];
+
+      // Use existing data if no new data is provided
+      const updatedbank_name = req.body.bank_name || contact.bank_name;
+      const updatedbranch_name = req.body.branch_name || contact.branch_name;
+      const updatedaccount_holder = req.body.account_holder || contact.account_holder;
+      const updatedaccount_number = req.body.account_number || contact.account_number;
+      const updatedIFSC_code = req.body.IFSC_code || contact.IFSC_code;
+      const updatedpan_number = req.body.pan_number || contact.pan_number;
+      
+
+      const contactUpdate = `
+        UPDATE bank_details
+        SET bank_name = ?, branch_name = ?, account_holder = ?, account_number = ?, IFSC_code = ?, pan_number = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `;
+
+      const values = [
+        updatedbank_name,
+        updatedbranch_name,
+        updatedaccount_holder,
+        updatedaccount_number,
+        updatedIFSC_code,
+        updatedpan_number,
+        id,
+      ];
+
+      const [result] = await connection.execute(contactUpdate, values);
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          status: 404,
+          message: "bank_details not found",
+        });
+      }
+
+      // Return the updated contact data
+      return res.status(200).json({
+        status: 200,
+        message: "bank_details has been updated successfully",
+        data: {
+          id: id,
+          country: updatedbank_name,
+          state: updatedbranch_name,
+          city: updatedaccount_holder,
+          postcode: updatedaccount_number,
+          mobile: updatedIFSC_code,
+          name: updatedpan_number,
+          updated_at: new Date(), // assuming the database updates the timestamp automatically
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
 };
 export default FATSDB;

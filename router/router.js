@@ -21,10 +21,9 @@ router.post("/resetPassword",FATSDB.resetPassword)
 router.post("/passwordchangeotpSend",FATSDB.passwordchangeotpSend)
 router.post("/verifyOTP",FATSDB.verifyOTP)
 router.put("/addnewpayment_detail",FATSDB.addnewpayment_detail)
-router.put("/addnewbank_details",FATSDB.addnewbank_details)
-
 router.post("/addnewmedia",upload.single("file"), FATSDB.addnewmedia)
 router.put("/updateprofile/:id",upload.single("file"), FATSDB.updateprofile)
+router.put("/updatebank_details/:id",FATSDB.updatebank_details)
 router.get("/",(req,res)=>{
     res.json({statusCode:200, message:"Project is Running", Data:null})
 })
