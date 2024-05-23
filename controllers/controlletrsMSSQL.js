@@ -1122,7 +1122,96 @@ const FATSDB = {
         message: "bank_details has been updated successfully",
         data: {
           id: id,
-          country: updatedbank_name,
+          bank_name: updatedbank_name,
+          branch_name: updatedbranch_name,
+          account_holder: updatedaccount_holder,
+          account_number: updatedaccount_number,
+          IFSC_code: updatedIFSC_code,
+          pan_number: updatedpan_number,
+          updated_at: new Date(), // assuming the database updates the timestamp automatically
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
+  async updatepayment_detail(req, res, next) {
+    let connection;
+
+    try {
+      // Ensure the ID parameter is present
+      const { id } = req.params;
+      if (!id) {
+        return res.status(400).json({
+          status: 400,
+          message: "ID is required",
+        });
+      }
+
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+
+      // Fetch existing contact data
+      const [existingContact] = await connection.execute(
+        "SELECT * FROM payment_detail WHERE id = ?",
+        [id]
+      );
+
+      if (existingContact.length === 0) {
+        return res.status(404).json({
+          status: 404,
+          message: "payment_detail not found",
+        });
+      }
+
+      const contact = existingContact[0];
+
+      // Use existing data if no new data is provided
+      const updated = req.body.bank_name || contact.bank_name;
+      const updatedbranch_name = req.body.branch_name || contact.branch_name;
+      const updatedaccount_holder = req.body.account_holder || contact.account_holder;
+      const updatedaccount_number = req.body.account_number || contact.account_number;
+      const updatedIFSC_code = req.body.IFSC_code || contact.IFSC_code;
+      const updatedpan_number = req.body.pan_number || contact.pan_number;
+      
+
+      const contactUpdate = `
+        UPDATE payment_detail
+        SET bank_name = ?, branch_name = ?, account_holder = ?, account_number = ?, IFSC_code = ?, pan_number = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `;
+
+      const values = [
+        updated,
+        updatedbranch_name,
+        updatedaccount_holder,
+        updatedaccount_number,
+        updatedIFSC_code,
+        updatedpan_number,
+        id,
+      ];
+
+      const [result] = await connection.execute(contactUpdate, values);
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          status: 404,
+          message: "payment_detail not found",
+        });
+      }
+
+      // Return the updated contact data
+      return res.status(200).json({
+        status: 200,
+        message: "payment_detail has been updated successfully",
+        data: {
+          id: id,
+          country: updated,
           state: updatedbranch_name,
           city: updatedaccount_holder,
           postcode: updatedaccount_number,
