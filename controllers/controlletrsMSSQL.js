@@ -73,6 +73,8 @@ const FATSDB = {
       SELECT * FROM profile
       LEFT JOIN user AS user_profile ON profile.user_id = user_profile.id
       LEFT JOIN contact ON profile.contact_id = contact.id
+      LEFT JOIN bank_details ON profile.bank_details_id = bank_details.id
+      LEFT JOIN payment_detail ON profile.payment_detail_id = payment_detail.id
       LEFT JOIN role ON profile.role_id = role.id
       WHERE profile.user_id = ?
     `;
