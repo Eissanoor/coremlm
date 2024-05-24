@@ -123,7 +123,7 @@ const FATSDB = {
   
       const [bankdetailsresult] = await connection.execute(bankdetails);
       const bankdetailsresult_id = bankdetailsresult.insertId;
-      const Paymnet = `INSERT INTO bank_details (created_at, updated_at) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+      const Paymnet = `INSERT INTO payment_detail (created_at, updated_at) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
   
       const [Paymnetresult] = await connection.execute(Paymnet);
       const Paymnetresult_id = Paymnetresult.insertId;
