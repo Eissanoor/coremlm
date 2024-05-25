@@ -1252,7 +1252,7 @@ const FATSDB = {
       const fileUrl = `${supabaseUrl}/storage/v1/object/public/core/uploads/${originalname}`;
   
       // Ensure user ID is available
-      const userId = req.user.id; // Assuming user ID is in req.user.id
+      const userId = req.params.id; // Assuming user ID is in req.user.id
       if (!userId) {
         throw new Error('User ID is required');
       }
