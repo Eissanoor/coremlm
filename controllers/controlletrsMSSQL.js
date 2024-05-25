@@ -146,7 +146,6 @@ const FATSDB = {
       }
     }
   },
-  
   async updateUser(req, res, next) {
     let connection;
 
@@ -1218,6 +1217,66 @@ const FATSDB = {
     } finally {
       if (connection && connection.end) {
         connection.end();
+      }
+    }
+  },
+  async updateProfilePic(req, res, next) {
+    let connection;
+    
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+  
+      const file = req.file;
+      
+      if (!file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+  
+      const { path, originalname, mimetype } = file;
+  
+      // Upload the file to Supabase storage
+      const { data, error } = await supabase.storage
+        .from('core') // Replace with your actual bucket name
+        .upload(`uploads/${originalname}`, fs.createReadStream(path), {
+          contentType: mimetype,
+          cacheControl: '3600',
+          upsert: false,
+          duplex:"half"
+        });
+  
+      if (error) {
+        throw error;
+      }
+  
+      const fileUrl = `${supabaseUrl}/storage/v1/object/public/core/uploads/${originalname}`;
+  
+      // Ensure user ID is available
+      const userId = req.user.id; // Assuming user ID is in req.user.id
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
+  
+      // Update user image in the database
+      const userUpdate = `
+        UPDATE user
+        SET image = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `;
+  
+      const [result] = await connection.execute(userUpdate, [fileUrl, userId]);
+  
+      return res.status(201).json({
+        status: 201,
+        message: "User profile image has been updated",
+        data: { imageUrl: fileUrl },
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json(e.message);
+    } finally {
+      if (connection && connection.end) {
+        await connection.end();
       }
     }
   },
