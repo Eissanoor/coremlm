@@ -1280,5 +1280,69 @@ const FATSDB = {
       }
     }
   },
+  async deleteProfilePic(req, res, next) {
+    let connection;
+
+    try {
+        connection = await mysql.createConnection(config);
+        await connection.connect();
+
+        const userId = req.params.id; // Assuming user ID is in req.params.id
+
+        if (!userId) {
+            return res.status(400).json({ error: 'User ID is required' });
+        }
+
+        // Retrieve the existing image URL from the database
+        const [rows] = await connection.execute(
+            'SELECT image FROM user WHERE id = ?',
+            [userId]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const imageUrl = rows[0].image;
+
+        if (!imageUrl) {
+            return res.status(400).json({ error: 'No profile image to delete' });
+        }
+
+        // Extract the file path from the URL
+        const filePath = imageUrl.split(`${supabaseUrl}/storage/v1/object/public/core/`)[1];
+
+        // Delete the file from Supabase storage
+        const { error: deleteError } = await supabase.storage
+            .from('core') // Replace with your actual bucket name
+            .remove([filePath]);
+
+        if (deleteError) {
+            throw deleteError;
+        }
+
+        // Update user image in the database
+        const userUpdate = `
+            UPDATE user
+            SET image = NULL, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `;
+
+        const [result] = await connection.execute(userUpdate, [userId]);
+
+        return res.status(200).json({
+            status: 200,
+            message: "User profile image has been deleted",
+            data: null,
+        });
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json(e.message);
+    } finally {
+        if (connection && connection.end) {
+            await connection.end();
+        }
+    }
+},
 };
 export default FATSDB;

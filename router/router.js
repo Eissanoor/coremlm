@@ -26,6 +26,7 @@ router.put("/updateprofile/:id",upload.single("file"), FATSDB.updateprofile)
 router.put("/updatebank_details/:id",FATSDB.updatebank_details)
 router.put("/updatepayment_detail/:id",FATSDB.updatepayment_detail)
 router.put("/updateProfilePic/:id",upload.single("image"),FATSDB.updateProfilePic)
+router.delete("/deleteProfilePic/:id",FATSDB.deleteProfilePic)
 router.get("/",(req,res)=>{
     res.json({statusCode:200, message:"Project is Running", Data:null})
 })
