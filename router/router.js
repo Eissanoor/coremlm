@@ -30,4 +30,6 @@ router.delete("/deleteProfilePic/:id",FATSDB.deleteProfilePic)
 router.get("/",(req,res)=>{
     res.json({statusCode:200, message:"Project is Running", Data:null})
 })
+router.post("/addnewproduct",upload.single("product_image"),FATSDB.addnewproduct)
+router.post("/add_to_cart_product",FATSDB.add_to_cart_product)
 export default router;

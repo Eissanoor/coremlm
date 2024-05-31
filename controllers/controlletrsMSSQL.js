@@ -1344,5 +1344,108 @@ const FATSDB = {
         }
     }
 },
+async addnewproduct(req, res, next) {
+  let connection; 
+
+  try {
+    connection = await mysql.createConnection(config);
+    await connection.connect();
+
+    const file = req.file;
+    const fileName = file ? file.originalname : null;
+
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Read the file from the temporary upload location
+    const { path, originalname } = file;
+
+    // Upload the file to Supabase storage
+    const { data, error } = await supabase.storage
+      .from('core') // Replace with your actual bucket name
+      .upload(`uploads/${originalname}`, fs.createReadStream(path), {
+        contentType: file.mimetype,
+        cacheControl: '3600',
+        upsert: false,
+        duplex: 'half', // Add this line to specify the duplex option
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    const fileUrl = `${supabaseUrl}/storage/v1/object/public/core/uploads/${fileName}`;
+
+    // Assuming `product_name`, `product_pv`, `product_price` come from the request body
+    const { product_name, product_pv, product_price } = req.body;
+
+    const values = [product_name, product_pv, product_price, fileUrl];
+
+    const userInsert = `
+      INSERT INTO product (product_name, product_pv, product_price, product_image, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `;
+
+    const [result] = await connection.execute(userInsert, values);
+    const mediaID = result.insertId;
+
+    return res.status(201).json({
+      status: 201,
+      message: "product has been created",
+      data: { product: mediaID, fileUrl: fileUrl },
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send(e);
+  } finally {
+    if (connection && connection.end) {
+      connection.end();
+    }
+  }
+},
+async add_to_cart_product(req, res, next) {
+  let connection;
+
+  try {
+    connection = await mysql.createConnection(config);
+    await connection.connect();
+
+    const userId = req.body.user_id;
+    const productIds = req.body.product_id;
+
+    if (!userId || !Array.isArray(productIds) || productIds.length === 0) {
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid input data",
+      });
+    }
+
+    const contactInsert = `
+      INSERT INTO add_cart_product (user_id, product_id, created_at, updated_at)
+      VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `;
+
+    const promises = productIds.map(productId => {
+      const values = [userId, productId];
+      return connection.execute(contactInsert, values);
+    });
+
+    await Promise.all(promises);
+
+    return res.status(201).json({
+      status: 201,
+      message: "Products have been added to the cart",
+      data: null,
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send(e);
+  } finally {
+    if (connection && connection.end) {
+      connection.end();
+    }
+  }
+},
 };
 export default FATSDB;
