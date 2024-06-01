@@ -2,6 +2,7 @@ import express from "express";
 const router = express.Router();
 import upload from "../config/multerConfig.js"
 import FATSDB from "../controllers/controlletrsMSSQL.js";
+import Member from "../controllers/memberRegister.js"
 router.get("/allgetprofile", FATSDB.allgetprofile)
 router.get("/user_profile", FATSDB.user_profile)
 router.post("/addnewuser", FATSDB.addnewuser)
@@ -39,4 +40,7 @@ router.get("/get_user_by_id/:id",FATSDB.get_user_by_id)
 router.get("/get_product_by_id/:idproduct",FATSDB.get_product_by_id)
 router.put("/updateProduct/:idproduct", upload.single("product_image"), FATSDB.updateProduct)
 router.delete("/deleteProduct/:idproduct",FATSDB.deleteProduct)
+
+//Members
+router.post("/addnewMember",upload.single("image"),Member.addnewMember)
 export default router;
