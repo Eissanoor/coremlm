@@ -33,4 +33,10 @@ router.get("/",(req,res)=>{
 router.post("/addnewproduct",upload.single("product_image"),FATSDB.addnewproduct)
 router.post("/add_to_cart_product",FATSDB.add_to_cart_product)
 router.get("/get_all_product",FATSDB.get_all_product)
+router.put("/updateUserforapprovel/:id",FATSDB.updateUserforapprovel)
+router.get("/get_all_users",FATSDB.get_all_users)
+router.get("/get_user_by_id/:id",FATSDB.get_user_by_id)
+router.get("/get_product_by_id/:idproduct",FATSDB.get_product_by_id)
+router.put("/updateProduct/:idproduct", upload.single("product_image"), FATSDB.updateProduct)
+router.delete("/deleteProduct/:idproduct",FATSDB.deleteProduct)
 export default router;

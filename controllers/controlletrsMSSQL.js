@@ -3,10 +3,8 @@ import path from "path";
 import mysql from "mysql2/promise";
 import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
-import fs from "fs"
-import { createClient } from '@supabase/supabase-js'
-
-
+import fs from "fs";
+import { createClient } from "@supabase/supabase-js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,9 +12,9 @@ import * as dotenv from "dotenv";
 import { log } from "console";
 dotenv.config({ path: path.join(__dirname, "../.env") });
 
-const supabaseUrl = process.env.supabaseUrl
-const supabaseKey = process.env.SUPABASE_KEY
-const supabase = createClient(supabaseUrl, supabaseKey)
+const supabaseUrl = process.env.supabaseUrl;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 let host = process.env.host;
 let user = process.env.user;
 let password = process.env.password;
@@ -95,14 +93,14 @@ const FATSDB = {
   //-------------------------POST--------------------------------
   async addnewuser(req, res, next) {
     let connection; // Declare connection outside the try block
-  
+
     try {
       connection = await mysql.createConnection(config);
       await connection.connect();
-  
+
       const userInsert =
         "INSERT INTO user (firstname, lastname, email, password, gender, created_at, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
-  
+
       const userValues = [
         req.body.firstname,
         req.body.lastname,
@@ -110,28 +108,33 @@ const FATSDB = {
         req.body.password,
         req.body.gender,
       ];
-  
+
       const [userResult] = await connection.execute(userInsert, userValues);
       const user_id = userResult.insertId;
-  
+
       const insertContactData = `INSERT INTO contact (created_at, updated_at) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
-  
+
       const [contactResult] = await connection.execute(insertContactData);
       const contact_id = contactResult.insertId;
-  
+
       const bankdetails = `INSERT INTO bank_details (created_at, updated_at) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
-  
+
       const [bankdetailsresult] = await connection.execute(bankdetails);
       const bankdetailsresult_id = bankdetailsresult.insertId;
       const Paymnet = `INSERT INTO payment_detail (created_at, updated_at) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
-  
+
       const [Paymnetresult] = await connection.execute(Paymnet);
       const Paymnetresult_id = Paymnetresult.insertId;
       const insertProfileUser = `INSERT INTO profile (user_id, contact_id, bank_details_id,payment_detail_id,created_at, updated_at) VALUES (?, ?,?,?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
-  
-      const profileValues = [user_id, contact_id,bankdetailsresult_id,Paymnetresult_id];
+
+      const profileValues = [
+        user_id,
+        contact_id,
+        bankdetailsresult_id,
+        Paymnetresult_id,
+      ];
       await connection.execute(insertProfileUser, profileValues);
-  
+
       return res.status(201).json({
         status: 201,
         message: "user has been created",
@@ -226,23 +229,23 @@ const FATSDB = {
   },
   async loginUser(req, res, next) {
     let connection;
-  
+
     try {
       connection = await mysql.createConnection(config);
       await connection.connect();
-  
+
       const { email, password } = req.body;
-  
+
       // Check if the user exists
       const userQuery = "SELECT * FROM user WHERE email = ?";
       const [userRows] = await connection.execute(userQuery, [email]);
-  
+
       if (userRows.length === 0) {
         return res.status(404).json({ status: 404, message: "User not found" });
       }
-  
+
       const user = userRows[0];
-  
+
       // Check if the account is verified
       if (user.isVarified === 0) {
         return res.status(403).json({
@@ -250,12 +253,14 @@ const FATSDB = {
           message: "This account is still not approved",
         });
       }
-  
+
       // Check if the password matches
       if (user.password !== password) {
-        return res.status(401).json({ status: 401, message: "Invalid password" });
+        return res
+          .status(401)
+          .json({ status: 401, message: "Invalid password" });
       }
-  
+
       // If everything is okay, generate a token or return user details
       // For simplicity, let's just return the user details for now
       return res.status(200).json({
@@ -279,8 +284,7 @@ const FATSDB = {
         connection.end();
       }
     }
-  }
-  ,
+  },
   async resetPassword(req, res, next) {
     let connection;
 
@@ -613,7 +617,10 @@ const FATSDB = {
       const updateProfileQuery =
         "UPDATE profile SET payment_detail_id = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?";
 
-      await connection.execute(updateProfileQuery, [payment_details_id, userId]);
+      await connection.execute(updateProfileQuery, [
+        payment_details_id,
+        userId,
+      ]);
 
       return res.status(201).json({
         status: 201,
@@ -922,56 +929,58 @@ const FATSDB = {
     }
   },
   async addnewmedia(req, res, next) {
-    let connection; 
-  
+    let connection;
+
     try {
       connection = await mysql.createConnection(config);
       await connection.connect();
-  
+
       const file = req.file;
-     const fileName = file.originalname
+      const fileName = file.originalname;
       if (!file) {
-        return res.status(400).json({ error: 'No file uploaded' });
+        return res.status(400).json({ error: "No file uploaded" });
       }
-  
-      
-  
+
       // Read the file from the temporary upload location
       const { path, originalname } = file;
-  
-    
-  
+
       // Upload the file to Supabase storage
       const { data, error } = await supabase.storage
-        .from('core') // Replace with your actual bucket name
+        .from("core") // Replace with your actual bucket name
         .upload(`uploads/${originalname}`, fs.createReadStream(path), {
           contentType: file.mimetype,
-          cacheControl: '3600',
+          cacheControl: "3600",
           upsert: false,
-          duplex: 'half', // Add this line to specify the duplex option
+          duplex: "half", // Add this line to specify the duplex option
         });
-  
+
       if (error) {
         throw error;
       }
-  
+
       const fileUrl = `${supabaseUrl}/storage/v1/object/public/core/uploads/${fileName}`;
-  
-  
+
       // Assuming `profile_id`, `title`, `description`, `file_type`, and `visibility` come from the request body
-      const { profile_id, title, description, file_type, visibility } = req.body;
-      const values = [profile_id, title, description, file_type, fileUrl, new Date(), visibility];
-  
+      const { profile_id, title, description, file_type, visibility } =
+        req.body;
+      const values = [
+        profile_id,
+        title,
+        description,
+        file_type,
+        fileUrl,
+        new Date(),
+        visibility,
+      ];
+
       const userInsert = `
         INSERT INTO upload_material (profile_id, title, description, file_type, file_path, upload_date, visibility, created_at, updated_at) 
         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `;
-  
+
       const [result] = await connection.execute(userInsert, values);
       const mediaID = result.insertId;
-  
-      
-  
+
       return res.status(201).json({
         status: 201,
         message: "Media has been created",
@@ -986,78 +995,88 @@ const FATSDB = {
       }
     }
   },
-  async updateprofile(req,res){
+  async updateprofile(req, res) {
     const getPublicUrl = (bucket, path) => {
-      return `${supabaseUrl.replace('.co', '.in')}/storage/v1/object/public/${bucket}/${path}`;
+      return `${supabaseUrl.replace(
+        ".co",
+        ".in"
+      )}/storage/v1/object/public/${bucket}/${path}`;
     };
     const { id } = req.params; // ID of the record to update
-    let connection; 
-  try {
-    const file = req.file;
-    
-    if (!file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
+    let connection;
+    try {
+      const file = req.file;
 
-    // Read the file from the temporary upload location
-    const { path, originalname } = file;
+      if (!file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
 
-    
+      // Read the file from the temporary upload location
+      const { path, originalname } = file;
 
-    // Read the file from the temporary upload location
-    const { path: filePath, originalname: fileName } = file;
+      // Read the file from the temporary upload location
+      const { path: filePath, originalname: fileName } = file;
 
-    connection = await mysql.createConnection(config);
-    await connection.connect();
-    const [rows] = await connection.execute('SELECT file_path FROM upload_material WHERE id = ?', [id]);
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+      const [rows] = await connection.execute(
+        "SELECT file_path FROM upload_material WHERE id = ?",
+        [id]
+      );
 
-    if (rows.length === 0) {
+      if (rows.length === 0) {
+        await connection.end();
+        return res.status(404).json({ error: "Record not found" });
+      }
+
+      const oldUrl = rows[0].file_path;
+      const oldFileName = oldUrl.split("/").pop();
+
+      // Delete the old file from Supabase
+      const { error: deleteError } = await supabase.storage
+        .from("core") // Replace with your actual bucket name
+        .remove([`uploads/${oldFileName}`]);
+
+      if (deleteError) {
+        console.error(deleteError);
+        return res.status(500).json({ error: "Failed to delete old file" });
+      }
+
+      // Upload the new file to Supabase storage
+      const { data, error: uploadError } = await supabase.storage
+        .from("core") // Replace with your actual bucket name
+        .upload(`uploads/${fileName}`, fs.createReadStream(filePath), {
+          contentType: file.mimetype,
+          cacheControl: "3600",
+          upsert: true, // Allow replacing the old file
+          duplex: "half", // Add this line to specify the duplex option
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get the public URL of the uploaded file
+      const publicUrl = getPublicUrl("core", `uploads/${fileName}`);
+
+      // Update the public URL in MySQL database
+      await connection.execute(
+        "UPDATE upload_material SET file_path = ? WHERE id = ?",
+        [publicUrl, id]
+      );
       await connection.end();
-      return res.status(404).json({ error: 'Record not found' });
+
+      res
+        .status(200)
+        .json({
+          message: "File uploaded and file_path updated successfully",
+          data,
+          publicUrl,
+        });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to upload file and update URL" });
     }
-
-    const oldUrl = rows[0].file_path;
-    const oldFileName = oldUrl.split('/').pop();
-
-    // Delete the old file from Supabase
-    const { error: deleteError } = await supabase.storage
-      .from('core') // Replace with your actual bucket name
-      .remove([`uploads/${oldFileName}`]);
-
-    if (deleteError) {
-      console.error(deleteError);
-      return res.status(500).json({ error: 'Failed to delete old file' });
-    }
-
-    // Upload the new file to Supabase storage
-    const { data, error: uploadError } = await supabase.storage
-      .from('core') // Replace with your actual bucket name
-      .upload(`uploads/${fileName}`, fs.createReadStream(filePath), {
-        contentType: file.mimetype,
-        cacheControl: '3600',
-        upsert: true, // Allow replacing the old file
-        duplex: 'half', // Add this line to specify the duplex option
-      });
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    // Get the public URL of the uploaded file
-    const publicUrl = getPublicUrl('core', `uploads/${fileName}`);
-    
-    // Update the public URL in MySQL database
-    await connection.execute(
-      'UPDATE upload_material SET file_path = ? WHERE id = ?',
-      [publicUrl, id]
-    );
-    await connection.end();
-
-    res.status(200).json({ message: 'File uploaded and file_path updated successfully', data, publicUrl });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to upload file and update URL' });
-  }
   },
   async updatebank_details(req, res, next) {
     let connection;
@@ -1093,11 +1112,12 @@ const FATSDB = {
       // Use existing data if no new data is provided
       const updatedbank_name = req.body.bank_name || contact.bank_name;
       const updatedbranch_name = req.body.branch_name || contact.branch_name;
-      const updatedaccount_holder = req.body.account_holder || contact.account_holder;
-      const updatedaccount_number = req.body.account_number || contact.account_number;
+      const updatedaccount_holder =
+        req.body.account_holder || contact.account_holder;
+      const updatedaccount_number =
+        req.body.account_number || contact.account_number;
       const updatedIFSC_code = req.body.IFSC_code || contact.IFSC_code;
       const updatedpan_number = req.body.pan_number || contact.pan_number;
-      
 
       const contactUpdate = `
         UPDATE bank_details
@@ -1180,10 +1200,10 @@ const FATSDB = {
       const contact = existingContact[0];
 
       // Use existing data if no new data is provided
-      const updatedpayment_detail_name = req.body.payment_detail_name || contact.payment_detail_name;
-      const updatedpayment_detail_method = req.body.payment_detail_method || contact.payment_detail_method;
-   
-      
+      const updatedpayment_detail_name =
+        req.body.payment_detail_name || contact.payment_detail_name;
+      const updatedpayment_detail_method =
+        req.body.payment_detail_method || contact.payment_detail_method;
 
       const contactUpdate = `
         UPDATE payment_detail
@@ -1214,7 +1234,7 @@ const FATSDB = {
           id: id,
           payment_detail_name: updatedpayment_detail_name,
           payment_detail_method: updatedpayment_detail_method,
-          
+
           updated_at: new Date(), // assuming the database updates the timestamp automatically
         },
       });
@@ -1229,50 +1249,50 @@ const FATSDB = {
   },
   async updateProfilePic(req, res, next) {
     let connection;
-    
+
     try {
       connection = await mysql.createConnection(config);
       await connection.connect();
-  
+
       const file = req.file;
-      
+
       if (!file) {
-        return res.status(400).json({ error: 'No file uploaded' });
+        return res.status(400).json({ error: "No file uploaded" });
       }
-  
+
       const { path, originalname, mimetype } = file;
-  
+
       // Upload the file to Supabase storage
       const { data, error } = await supabase.storage
-        .from('core') // Replace with your actual bucket name
+        .from("core") // Replace with your actual bucket name
         .upload(`uploads/${originalname}`, fs.createReadStream(path), {
           contentType: mimetype,
-          cacheControl: '3600',
+          cacheControl: "3600",
           upsert: false,
-          duplex:"half"
+          duplex: "half",
         });
-  
+
       if (error) {
         throw error;
       }
-  
+
       const fileUrl = `${supabaseUrl}/storage/v1/object/public/core/uploads/${originalname}`;
-  
+
       // Ensure user ID is available
       const userId = req.params.id; // Assuming user ID is in req.user.id
       if (!userId) {
-        throw new Error('User ID is required');
+        throw new Error("User ID is required");
       }
-  
+
       // Update user image in the database
       const userUpdate = `
         UPDATE user
         SET image = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `;
-  
+
       const [result] = await connection.execute(userUpdate, [fileUrl, userId]);
-  
+
       return res.status(201).json({
         status: 201,
         message: "User profile image has been updated",
@@ -1291,180 +1311,459 @@ const FATSDB = {
     let connection;
 
     try {
-        connection = await mysql.createConnection(config);
-        await connection.connect();
+      connection = await mysql.createConnection(config);
+      await connection.connect();
 
-        const userId = req.params.id; // Assuming user ID is in req.params.id
+      const userId = req.params.id; // Assuming user ID is in req.params.id
 
-        if (!userId) {
-            return res.status(400).json({ error: 'User ID is required' });
-        }
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
 
-        // Retrieve the existing image URL from the database
-        const [rows] = await connection.execute(
-            'SELECT image FROM user WHERE id = ?',
-            [userId]
-        );
+      // Retrieve the existing image URL from the database
+      const [rows] = await connection.execute(
+        "SELECT image FROM user WHERE id = ?",
+        [userId]
+      );
 
-        if (rows.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
-        }
+      if (rows.length === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
 
-        const imageUrl = rows[0].image;
+      const imageUrl = rows[0].image;
 
-        if (!imageUrl) {
-            return res.status(400).json({ error: 'No profile image to delete' });
-        }
+      if (!imageUrl) {
+        return res.status(400).json({ error: "No profile image to delete" });
+      }
 
-        // Extract the file path from the URL
-        const filePath = imageUrl.split(`${supabaseUrl}/storage/v1/object/public/core/`)[1];
+      // Extract the file path from the URL
+      const filePath = imageUrl.split(
+        `${supabaseUrl}/storage/v1/object/public/core/`
+      )[1];
 
-        // Delete the file from Supabase storage
-        const { error: deleteError } = await supabase.storage
-            .from('core') // Replace with your actual bucket name
-            .remove([filePath]);
+      // Delete the file from Supabase storage
+      const { error: deleteError } = await supabase.storage
+        .from("core") // Replace with your actual bucket name
+        .remove([filePath]);
 
-        if (deleteError) {
-            throw deleteError;
-        }
+      if (deleteError) {
+        throw deleteError;
+      }
 
-        // Update user image in the database
-        const userUpdate = `
+      // Update user image in the database
+      const userUpdate = `
             UPDATE user
             SET image = NULL, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `;
 
-        const [result] = await connection.execute(userUpdate, [userId]);
+      const [result] = await connection.execute(userUpdate, [userId]);
 
-        return res.status(200).json({
-            status: 200,
-            message: "User profile image has been deleted",
-            data: null,
-        });
-    } catch (e) {
-        console.error(e);
-        return res.status(500).json(e.message);
-    } finally {
-        if (connection && connection.end) {
-            await connection.end();
-        }
-    }
-},
-async addnewproduct(req, res, next) {
-  let connection; 
-
-  try {
-    connection = await mysql.createConnection(config);
-    await connection.connect();
-
-    const file = req.file;
-    const fileName = file ? file.originalname : null;
-
-    if (!file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-
-    // Read the file from the temporary upload location
-    const { path, originalname } = file;
-
-    // Upload the file to Supabase storage
-    const { data, error } = await supabase.storage
-      .from('core') // Replace with your actual bucket name
-      .upload(`uploads/${originalname}`, fs.createReadStream(path), {
-        contentType: file.mimetype,
-        cacheControl: '3600',
-        upsert: false,
-        duplex: 'half', // Add this line to specify the duplex option
+      return res.status(200).json({
+        status: 200,
+        message: "User profile image has been deleted",
+        data: null,
       });
-
-    if (error) {
-      throw error;
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json(e.message);
+    } finally {
+      if (connection && connection.end) {
+        await connection.end();
+      }
     }
+  },
+  async addnewproduct(req, res, next) {
+    let connection;
 
-    const fileUrl = `${supabaseUrl}/storage/v1/object/public/core/uploads/${fileName}`;
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
 
-    // Assuming `product_name`, `product_pv`, `product_price` come from the request body
-    const { product_name, product_pv, product_price } = req.body;
+      const file = req.file;
+      const fileName = file ? file.originalname : null;
 
-    const values = [product_name, product_pv, product_price, fileUrl];
+      if (!file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
 
-    const userInsert = `
-      INSERT INTO product (product_name, product_pv, product_price, product_image, created_at, updated_at) 
-      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      // Read the file from the temporary upload location
+      const { path, originalname } = file;
+
+      // Upload the file to Supabase storage
+      const { data, error } = await supabase.storage
+        .from("core") // Replace with your actual bucket name
+        .upload(`uploads/${originalname}`, fs.createReadStream(path), {
+          contentType: file.mimetype,
+          cacheControl: "3600",
+          upsert: false,
+          duplex: "half", // Add this line to specify the duplex option
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      const fileUrl = `${supabaseUrl}/storage/v1/object/public/core/uploads/${fileName}`;
+
+      // Assuming `product_name`, `product_pv`, `product_price` come from the request body
+      const { product_name, product_pv, product_price, description } = req.body;
+
+      const values = [
+        product_name,
+        product_pv,
+        product_price,
+        fileUrl,
+        description,
+      ];
+
+      const userInsert = `
+      INSERT INTO product (product_name, product_pv, product_price, product_image, description, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `;
 
-    const [result] = await connection.execute(userInsert, values);
-    const mediaID = result.insertId;
+      const [result] = await connection.execute(userInsert, values);
+      const mediaID = result.insertId;
 
-    return res.status(201).json({
-      status: 201,
-      message: "product has been created",
-      data: { product: mediaID, fileUrl: fileUrl },
-    });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).send(e);
-  } finally {
-    if (connection && connection.end) {
-      connection.end();
-    }
-  }
-},
-async add_to_cart_product(req, res, next) {
-  let connection;
-
-  try {
-    connection = await mysql.createConnection(config);
-    await connection.connect();
-
-    const userId = req.body.user_id;
-    const productIds = req.body.product_id;
-
-    if (!userId || !Array.isArray(productIds) || productIds.length === 0) {
-      return res.status(400).json({
-        status: 400,
-        message: "Invalid input data",
+      return res.status(201).json({
+        status: 201,
+        message: "product has been created",
+        data: { product: mediaID, fileUrl: fileUrl },
       });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
     }
+  },
+  async get_product_by_id(req, res, next) {
+    try {
+      const connection = await mysql.createConnection(config);
 
-    const contactInsert = `
+      const { idproduct } = req.params;
+      const [rows, fields] = await connection.execute(
+        "SELECT * FROM product WHERE idproduct = ?",
+        [idproduct]
+      );
+      connection.end();
+
+      if (rows.length === 0) {
+        return res
+          .status(404)
+          .json({ status: 404, message: "product not found" });
+      }
+
+      return res.status(200).send({ data: rows[0] });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send("Internal Server Error");
+    }
+  },
+  async updateProduct(req, res, next) {
+    let connection;
+  
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+  
+      const { idproduct } = req.params;
+      const file = req.file;
+      const fileName = file ? file.originalname : null;
+  
+      // Fetch the existing product to get the current file URL
+      const [productRows] = await connection.execute("SELECT * FROM product WHERE idproduct = ?", [idproduct]);
+  
+      if (productRows.length === 0) {
+        return res.status(404).json({ status: 404, message: "Product not found" });
+      }
+  
+      const product = productRows[0];
+      let fileUrl = product.product_image;
+  
+      if (file) {
+        // Read the file from the temporary upload location
+        const { path, originalname } = file;
+  
+        // Upload the file to Supabase storage
+        const { data, error } = await supabase.storage
+          .from('core') // Replace with your actual bucket name
+          .upload(`uploads/${originalname}`, fs.createReadStream(path), {
+            contentType: file.mimetype,
+            cacheControl: '3600',
+            upsert: false,
+            duplex: 'half',
+          });
+  
+        if (error) {
+          throw error;
+        }
+  
+        // Delete the old file from Supabase storage
+        const oldFileName = product.product_image.split('/').pop();
+        const { error: deleteError } = await supabase.storage
+          .from('core')
+          .remove([`uploads/${oldFileName}`]);
+  
+        if (deleteError) {
+          throw deleteError;
+        }
+  
+        fileUrl = `${supabaseUrl}/storage/v1/object/public/core/uploads/${fileName}`;
+      }
+  
+      // Assuming `product_name`, `product_pv`, `product_price`, and `description` come from the request body
+      const { product_name, product_pv, product_price, description } = req.body;
+  
+      // Handle undefined values
+      const productName = product_name !== undefined ? product_name : product.product_name;
+      const productPv = product_pv !== undefined ? product_pv : product.product_pv;
+      const productPrice = product_price !== undefined ? product_price : product.product_price;
+      const productDescription = description !== undefined ? description : product.description;
+  
+      const values = [productName, productPv, productPrice, fileUrl, productDescription, idproduct];
+  
+      const productUpdate = `
+        UPDATE product 
+        SET product_name = ?, product_pv = ?, product_price = ?, product_image = ?, description = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE idproduct = ?
+      `;
+  
+      await connection.execute(productUpdate, values);
+      const [updatedProductRows] = await connection.execute("SELECT * FROM product WHERE idproduct = ?", [idproduct]);
+      const updatedProduct = updatedProductRows[0];
+  
+      return res.status(200).json({
+        status: 200,
+        message: "Product has been updated",
+        data: updatedProduct,
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
+  async deleteProduct(req, res, next) {
+    let connection;
+  
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+  
+      const { idproduct } = req.params;
+  
+      // Fetch the existing product to get the current file URL
+      const [productRows] = await connection.execute("SELECT * FROM product WHERE idproduct = ?", [idproduct]);
+  
+      if (productRows.length === 0) {
+        return res.status(404).json({ status: 404, message: "Product not found" });
+      }
+  
+      const product = productRows[0];
+      const fileUrl = product.product_image;
+  
+      // Delete the file from Supabase storage if it exists
+      if (fileUrl) {
+        const oldFileName = fileUrl.split('/').pop();
+        const { error: deleteError } = await supabase.storage
+          .from('core') // Replace with your actual bucket name
+          .remove([`uploads/${oldFileName}`]);
+  
+        if (deleteError) {
+          throw deleteError;
+        }
+      }
+  
+      // Delete the product from the database
+      await connection.execute("DELETE FROM product WHERE idproduct = ?", [idproduct]);
+  
+      return res.status(200).json({
+        status: 200,
+        message: "Product has been deleted",
+        data: { productId: idproduct }
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
+  async add_to_cart_product(req, res, next) {
+    let connection;
+
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+
+      const userId = req.body.user_id;
+      const productIds = req.body.product_id;
+
+      if (!userId || !Array.isArray(productIds) || productIds.length === 0) {
+        return res.status(400).json({
+          status: 400,
+          message: "Invalid input data",
+        });
+      }
+
+      const contactInsert = `
       INSERT INTO add_cart_product (user_id, product_id, created_at, updated_at)
       VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `;
 
-    const promises = productIds.map(productId => {
-      const values = [userId, productId];
-      return connection.execute(contactInsert, values);
-    });
+      const promises = productIds.map((productId) => {
+        const values = [userId, productId];
+        return connection.execute(contactInsert, values);
+      });
 
-    await Promise.all(promises);
+      await Promise.all(promises);
 
-    return res.status(201).json({
-      status: 201,
-      message: "Products have been added to the cart",
-      data: null,
-    });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).send(e);
-  } finally {
-    if (connection && connection.end) {
-      connection.end();
+      return res.status(201).json({
+        status: 201,
+        message: "Products have been added to the cart",
+        data: null,
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
     }
-  }
-},
-async get_all_product(req, res, next) {
-  try {
-    const connection = await mysql.createConnection(config);
-    const [rows, fields] = await connection.execute("SELECT * FROM product");
-    connection.end();
+  },
+  async get_all_product(req, res, next) {
+    try {
+      const connection = await mysql.createConnection(config);
+      const [rows, fields] = await connection.execute("SELECT * FROM product");
+      connection.end();
 
-    return res.status(200).send({ data: rows });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).send("Internal Server Error");
-  }
-},
+      return res.status(200).send({ data: rows });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send("Internal Server Error");
+    }
+  },
+  async updateUserforapprovel(req, res, next) {
+    let connection;
+
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+
+      const userId = req.params.id;
+
+      // Fetch existing user data
+      const [existingUser] = await connection.execute(
+        "SELECT * FROM user WHERE id = ?",
+        [userId]
+      );
+
+      if (existingUser.length === 0) {
+        return res.status(404).json({
+          status: 404,
+          message: "User not found",
+        });
+      }
+
+      const user = existingUser[0];
+
+      // Use existing data if no new data is provided
+      const updatedFirstName = req.body.firstname || user.firstname;
+      const updatedLastName = req.body.lastname || user.lastname;
+      const updatedGender = req.body.gender || user.gender;
+      const updatedTwitter = req.body.twitter || user.twitter;
+      const updatedFacebook = req.body.facebook || user.facebook;
+      const updatedisVarified = req.body.isVarified || user.isVarified;
+      const userUpdate = `
+      UPDATE user
+      SET firstname = ?, lastname = ?, gender = ?, twitter = ?, facebook = ?, isVarified=?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `;
+
+      const values = [
+        updatedFirstName,
+        updatedLastName,
+        updatedGender,
+        updatedTwitter,
+        updatedFacebook,
+        updatedisVarified,
+        userId,
+      ];
+
+      const [result] = await connection.execute(userUpdate, values);
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          status: 404,
+          message: "User not found",
+        });
+      }
+
+      // Return the updated (or existing) user data
+      return res.status(200).json({
+        status: 200,
+        message: "User has been updated successfully",
+        data: {
+          id: userId,
+          firstname: updatedFirstName,
+          lastname: updatedLastName,
+          gender: updatedGender,
+          twitter: updatedTwitter,
+          facebook: updatedFacebook,
+          isVarified: updatedisVarified,
+          updated_at: new Date(), // assuming the database updates the timestamp automatically
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
+  async get_all_users(req, res, next) {
+    try {
+      const connection = await mysql.createConnection(config);
+      const [rows, fields] = await connection.execute("SELECT * FROM user");
+      connection.end();
+
+      return res.status(200).send({ data: rows });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send("Internal Server Error");
+    }
+  },
+  async get_user_by_id(req, res, next) {
+    try {
+      const connection = await mysql.createConnection(config);
+
+      const { id } = req.params;
+      const [rows, fields] = await connection.execute(
+        "SELECT * FROM user WHERE id = ?",
+        [id]
+      );
+      connection.end();
+
+      if (rows.length === 0) {
+        return res.status(404).json({ status: 404, message: "User not found" });
+      }
+
+      return res.status(200).send({ data: rows[0] });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send("Internal Server Error");
+    }
+  },
 };
 export default FATSDB;
