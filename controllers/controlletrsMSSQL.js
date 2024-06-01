@@ -226,30 +226,36 @@ const FATSDB = {
   },
   async loginUser(req, res, next) {
     let connection;
-
+  
     try {
       connection = await mysql.createConnection(config);
       await connection.connect();
-
+  
       const { email, password } = req.body;
-
+  
       // Check if the user exists
       const userQuery = "SELECT * FROM user WHERE email = ?";
       const [userRows] = await connection.execute(userQuery, [email]);
-
+  
       if (userRows.length === 0) {
         return res.status(404).json({ status: 404, message: "User not found" });
       }
-
+  
       const user = userRows[0];
-
+  
+      // Check if the account is verified
+      if (user.isVarified === 0) {
+        return res.status(403).json({
+          status: 403,
+          message: "This account is still not approved",
+        });
+      }
+  
       // Check if the password matches
       if (user.password !== password) {
-        return res
-          .status(401)
-          .json({ status: 401, message: "Invalid password" });
+        return res.status(401).json({ status: 401, message: "Invalid password" });
       }
-
+  
       // If everything is okay, generate a token or return user details
       // For simplicity, let's just return the user details for now
       return res.status(200).json({
@@ -273,7 +279,8 @@ const FATSDB = {
         connection.end();
       }
     }
-  },
+  }
+  ,
   async resetPassword(req, res, next) {
     let connection;
 
