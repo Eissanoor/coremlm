@@ -32,4 +32,5 @@ router.get("/",(req,res)=>{
 })
 router.post("/addnewproduct",upload.single("product_image"),FATSDB.addnewproduct)
 router.post("/add_to_cart_product",FATSDB.add_to_cart_product)
+router.get("/get_all_product",FATSDB.get_all_product)
 export default router;

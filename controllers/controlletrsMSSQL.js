@@ -1447,5 +1447,17 @@ async add_to_cart_product(req, res, next) {
     }
   }
 },
+async get_all_product(req, res, next) {
+  try {
+    const connection = await mysql.createConnection(config);
+    const [rows, fields] = await connection.execute("SELECT * FROM product");
+    connection.end();
+
+    return res.status(200).send({ data: rows });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send("Internal Server Error");
+  }
+},
 };
 export default FATSDB;
