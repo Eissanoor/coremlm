@@ -10,6 +10,10 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(cookieParser());
+
+// Set EJS as the templating engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(process.cwd(), 'views'));
 // app.use("/uploads", express.static(__dirname + "/uploads"));
 // serve static files from the uploads directory
 const uploadFolder = path.join(process.cwd(), "uploads"); // get the absolute path to the uploads folder
