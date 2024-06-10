@@ -8,7 +8,6 @@ import ejs from "ejs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import * as dotenv from "dotenv";
-import { log } from "console";
 dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const supabaseUrl = process.env.supabaseUrl;
@@ -189,32 +188,99 @@ const MemberRegister = {
       }
     }
   },
+  
   async get_all_Member(req, res, next) {
     try {
       const connection = await mysql.createConnection(config);
-      const [rows, fields] = await connection.execute(
-        "SELECT * FROM member_register"
-      );
+      
+      // Fetch all members
+      const [members] = await connection.execute("SELECT * FROM member_register");
+      
+      // Fetch add_cart_product data for each member and combine results
+      const memberDataPromises = members.map(async (member) => {
+        // Fetch cart products for the current member
+        const [cartProducts] = await connection.execute(
+          "SELECT * FROM add_cart_product WHERE member_id = ?",
+          [member.id]  // assuming member.id is the member's ID
+        );
+        
+        // Fetch product details for each cart product
+        const cartProductDetailsPromises = cartProducts.map(async (cartProduct) => {
+          const [productDetails] = await connection.execute(
+            "SELECT * FROM product WHERE id = ?",
+            [cartProduct.product_id]  // assuming product_id is the product's ID
+          );
+          return {
+            ...cartProduct,
+            productDetails: productDetails[0]  // Assuming there is always one product
+          };
+        });
+        
+        const cartProductsWithDetails = await Promise.all(cartProductDetailsPromises);
+        
+        return {
+          ...member,
+          cartProducts: cartProductsWithDetails
+        };
+      });
+      
+      const membersWithCartProducts = await Promise.all(memberDataPromises);
+      
       connection.end();
-
-      return res.status(200).send({ data: rows });
+    
+      return res.status(200).send({ data: membersWithCartProducts });
     } catch (e) {
       console.error(e);
       return res.status(500).send("Internal Server Error");
     }
   },
-  async get_all_Member(req, res, next) {
+  async updateMember(req, res, next) {
+    let connection;
+  
     try {
-      const connection = await mysql.createConnection(config);
-      const [rows, fields] = await connection.execute(
-        "SELECT * FROM member_register"
-      );
-      connection.end();
-
-      return res.status(200).send({ data: rows });
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+  
+      const { id } = req.params;
+  
+      // Fetch the existing product to get the current file URL
+      const [productRows] = await connection.execute("SELECT * FROM member_register WHERE id = ?", [id]);
+  
+      if (productRows.length === 0) {
+        return res.status(404).json({ status: 404, message: "Member Id not found" });
+      }
+  
+      const product = productRows[0];
+     
+      const { isVarified } = req.body;
+  
+      // Handle undefined values
+      const productName = isVarified !== undefined ? isVarified : product.isVarified;
+     
+  
+      const values = [productName];
+  
+      const productUpdate = `
+        UPDATE member_register 
+        SET isVarified = ?
+      `;
+  
+      await connection.execute(productUpdate, values);
+      const [updatedProductRows] = await connection.execute("SELECT * FROM member_register WHERE id = ?", [id]);
+      const updatedProduct = updatedProductRows[0];
+  
+      return res.status(200).json({
+        status: 200,
+        message: "Member Register has been updated",
+        data: updatedProduct,
+      });
     } catch (e) {
       console.error(e);
-      return res.status(500).send("Internal Server Error");
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
     }
   },
 };
