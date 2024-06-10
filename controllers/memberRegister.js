@@ -33,55 +33,73 @@ const MemberRegister = {
     let connection;
 
     try {
-      // Ensure all required fields are present in the request body
-      const requiredFields = [
-        "first_name", "date_of_birth", "gender", "email",
-        "phone_no", "user_name", "user_id", "password"
-      ];
+        // Ensure all required fields are present in the request body
+        const requiredFields = [
+            "first_name", "date_of_birth", "gender", "email",
+            "phone_no", "user_name", "user_id", "password"
+        ];
 
-      for (const field of requiredFields) {
-        if (!req.body[field]) {
-          return res.status(400).json({ status: 400, message: `${field} is required` });
-        }
-      }
-
-      connection = await mysql.createConnection(config);
-      await connection.connect();
-
-      const file = req.file;
-      let fileUrl = null;
-
-      if (file) {
-        const { path, originalname, mimetype } = file;
-        const { data, error } = await supabase.storage
-          .from("core") // Replace with your actual bucket name
-          .upload(`uploads/${originalname}`, fs.createReadStream(path), {
-            contentType: mimetype,
-            cacheControl: "3600",
-            upsert: false,
-          });
-
-        if (error) {
-          throw error;
+        for (const field of requiredFields) {
+            if (!req.body[field]) {
+                return res.status(400).json({ status: 400, message: `${field} is required` });
+            }
         }
 
-        fileUrl = `${supabaseUrl}/storage/v1/object/public/core/uploads/${originalname}`;
-      }
+        connection = await mysql.createConnection(config);
+        await connection.connect();
 
-      const contactInsert = `
-        INSERT INTO member_register 
-        (first_name, date_of_birth, gender, email, phone_no, user_name, user_id, password, image, created_at, updated_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+        const contactInsert = `
+            INSERT INTO member_register 
+            (first_name, date_of_birth, gender, email, phone_no, user_name, user_id, password, created_at, updated_at) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
 
-      const values = [
-        req.body.first_name, req.body.date_of_birth, req.body.gender, req.body.email,
-        req.body.phone_no, req.body.user_name, req.body.user_id, req.body.password, fileUrl
-      ];
+        const values = [
+            req.body.first_name, req.body.date_of_birth, req.body.gender, req.body.email,
+            req.body.phone_no, req.body.user_name, req.body.user_id, req.body.password
+        ];
 
-      const [result] = await connection.execute(contactInsert, values);
-      const contact_id = result.insertId;
+        const [result] = await connection.execute(contactInsert, values);
+        const contact_id = result.insertId;
 
-      const transporter = nodemailer.createTransport({
+        //i want to there get data base on contact_id into member_register tbale
+        const memberQuery = 'SELECT * FROM member_register WHERE id =?';
+        const [memberData] = await connection.execute(memberQuery, [contact_id]);
+
+        // Check if product_id array is provided in the request body
+        if (Array.isArray(req.body.product_id) && req.body.product_id.length > 0) {
+            const userId = req.body.user_id;
+            const productIds = req.body.product_id;
+
+            const productInsert = `
+                INSERT INTO add_cart_product (user_id, product_id,member_id, created_at, updated_at)
+                VALUES (?, ?, ?,CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+
+            const productPromises = productIds.map(productId => {
+                const productValues = [userId, productId,contact_id];
+                return connection.execute(productInsert, productValues);
+            });
+
+            await Promise.all(productPromises);
+        }
+// Retrieve related data from add_cart_product based on user_id
+const cartQuery = 'SELECT * FROM add_cart_product WHERE member_id = ?';
+const [cartData] = await connection.execute(cartQuery, [contact_id]);
+//there i gett all product_id into this table add_cart_product  
+        const cartQuery1 = 'SELECT * FROM add_cart_product WHERE member_id =?';
+        const [cartData1] = await connection.execute(cartQuery1, [contact_id]);
+
+        // Send an email to the user with the products in their cart
+        const cartProducts = cartData1.map(product => product.product_id);
+        const cartProductsString = cartProducts.join(", ");
+
+        // this all product_id through get all product into product table
+        const productQuery = 'SELECT * FROM product WHERE id IN (' + cartProductsString + ')';
+        const [productData] = await connection.execute(productQuery);
+
+
+
+
+const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: { user: sendEmail, pass: sendEmailpassword }
       });
@@ -90,7 +108,9 @@ const MemberRegister = {
 
       // Render the EJS template
       const emailTemplatePath = path.join(__dirname, '../views/email.ejs');
-      const emailHtml = await ejs.renderFile(emailTemplatePath, { username:req.body.user_name });
+      const emailHtml = await ejs.renderFile(emailTemplatePath, { username: req.body.user_name,
+        member: memberData,
+        cartData: productData });
 
       const mailOptions = {
         from: sendEmail,
@@ -108,20 +128,21 @@ const MemberRegister = {
         }
       });
 
-      return res.status(201).json({
-        status: 201,
-        message: "Member has been created. Please check your email.",
-        data: { contactId: contact_id, image: fileUrl }
-      });
+
+        return res.status(201).json({
+            status: 201,
+            message: "Member has been created. Products have been added to the cart. Please check your email.",
+            data: { member: memberData, cartData: productData }
+        });
     } catch (e) {
-      console.error(e);
-      return res.status(500).json({ status: 500, message: e.message });
+        console.error(e);
+        return res.status(500).json({ status: 500, message: e.message });
     } finally {
-      if (connection && connection.end) {
-        await connection.end();
-      }
+        if (connection && connection.end) {
+            await connection.end();
+        }
     }
-  },
+},
   async get_all_Member(req, res, next) {
     try {
       const connection = await mysql.createConnection(config);

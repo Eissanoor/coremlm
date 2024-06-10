@@ -42,6 +42,6 @@ router.put("/updateProduct/:idproduct", upload.single("product_image"), FATSDB.u
 router.delete("/deleteProduct/:idproduct",FATSDB.deleteProduct)
 
 //Members
-router.post("/addnewMember",upload.single("image"),Member.addnewMember)
+router.post("/addnewMember",Member.addnewMember)
 router.get("/get_all_Member",Member.get_all_Member)
 export default router;

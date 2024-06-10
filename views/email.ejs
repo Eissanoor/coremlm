@@ -20,17 +20,60 @@
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             text-align: center;
+            width: 80%;
+            max-width: 800px;
         }
         h1 {
             color: #4CAF50;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
         }
     </style>
 </head>
 <body>
     <div class="container">
+        
+        <img src="" alt="<%= username %>" style="width: 200px;">
+        <h1 style="color: red;" >Coremlm</h1>
         <h1>Registration Successful!</h1>
         <p>Welcome, <%= username %>! Your account has been successfully created.</p>
-        <p>You can now <a href="/login">log in</a> to your account.</p>
+        <p>Your account is pending approval.</p>
+        <h2>Your Cart</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>Product Image</th>
+                    <th>PV</th>
+                    <th>Price</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% cartData.forEach(function(product) { %>
+                    <tr>
+                        <td><%= product.product_name %></td>
+                        <td><img src="<%= product.product_image %>" alt="<%= product.product_name %>" style="width: 100px;"></td>
+                        <td><%= product.product_pv %></td>
+                        <td><%= product.product_price %></td>
+                        <td><%= product.description %></td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
     </div>
 </body>
 </html>
