@@ -236,43 +236,43 @@ const MemberRegister = {
   },
   async updateMember(req, res, next) {
     let connection;
-  
+    
     try {
       connection = await mysql.createConnection(config);
       await connection.connect();
-  
+    
       const { id } = req.params;
-  
-      // Fetch the existing product to get the current file URL
-      const [productRows] = await connection.execute("SELECT * FROM member_register WHERE id = ?", [id]);
-  
-      if (productRows.length === 0) {
+    
+      // Fetch the existing member to get the current data
+      const [memberRows] = await connection.execute("SELECT * FROM member_register WHERE id = ?", [id]);
+    
+      if (memberRows.length === 0) {
         return res.status(404).json({ status: 404, message: "Member Id not found" });
       }
-  
-      const product = productRows[0];
-     
+    
+      const member = memberRows[0];
+       
       const { isVarified } = req.body;
-  
+    
       // Handle undefined values
-      const productName = isVarified !== undefined ? isVarified : product.isVarified;
-     
-  
-      const values = [productName];
-  
-      const productUpdate = `
+      const isVarifiedValue = isVarified !== undefined ? isVarified : member.isVarified;
+    
+      const values = [isVarifiedValue, id];
+    
+      const memberUpdate = `
         UPDATE member_register 
         SET isVarified = ?
+        WHERE id = ?
       `;
-  
-      await connection.execute(productUpdate, values);
-      const [updatedProductRows] = await connection.execute("SELECT * FROM member_register WHERE id = ?", [id]);
-      const updatedProduct = updatedProductRows[0];
-  
+    
+      await connection.execute(memberUpdate, values);
+      const [updatedMemberRows] = await connection.execute("SELECT * FROM member_register WHERE id = ?", [id]);
+      const updatedMember = updatedMemberRows[0];
+    
       return res.status(200).json({
         status: 200,
         message: "Member Register has been updated",
-        data: updatedProduct,
+        data: updatedMember,
       });
     } catch (e) {
       console.error(e);
@@ -282,6 +282,40 @@ const MemberRegister = {
         connection.end();
       }
     }
-  },
+  }
+  ,
+  async deleteMember(req, res, next) {
+    let connection;
+    
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+    
+      const { id } = req.params;
+    
+      // Check if the member exists
+      const [memberRows] = await connection.execute("SELECT * FROM member_register WHERE id = ?", [id]);
+    
+      if (memberRows.length === 0) {
+        return res.status(404).json({ status: 404, message: "Member Id not found" });
+      }
+    
+      // Delete the member
+      await connection.execute("DELETE FROM member_register WHERE id = ?", [id]);
+    
+      return res.status(200).json({
+        status: 200,
+        message: "Member has been deleted successfully",
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  }
+  
 };
 export default MemberRegister;

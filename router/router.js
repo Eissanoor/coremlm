@@ -45,4 +45,5 @@ router.delete("/deleteProduct/:idproduct",FATSDB.deleteProduct)
 router.post("/addnewMember",upload.single("bankSlipe"),Member.addnewMember)
 router.get("/get_all_Member",Member.get_all_Member)
 router.put("/updateMember/:id",Member.updateMember)
+router.delete("/deleteMember/:id",Member.deleteMember)
 export default router;
