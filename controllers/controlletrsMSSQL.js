@@ -235,56 +235,69 @@ const FATSDB = {
       await connection.connect();
 
       const { email, password } = req.body;
+      let user;
 
-      // Check if the user exists
-      const userQuery = "SELECT * FROM user WHERE email = ?";
-      const [userRows] = await connection.execute(userQuery, [email]);
+      // Check if the user exists in the member_register table
+      let userQuery = "SELECT * FROM member_register WHERE email = ?";
+      let [userRows] = await connection.execute(userQuery, [email]);
+      
 
-      if (userRows.length === 0) {
-        return res.status(404).json({ status: 404, message: "User not found" });
+      if (userRows.length > 0) {
+          user = userRows[0];
+      } else {
+          // If not found in member_register, check the user table
+          userQuery = "SELECT * FROM user WHERE email = ?";
+          [userRows] = await connection.execute(userQuery, [email]);
+
+          if (userRows.length > 0) {
+              user = userRows[0];
+          } else {
+              return res.status(404).json({ status: 404, message: "User not found" });
+          }
       }
-
-      const user = userRows[0];
 
       // Check if the account is verified
       if (user.isVarified === 0) {
-        return res.status(403).json({
-          status: 403,
-          message: "pending for approvel",
-        });
+          return res.status(403).json({
+              status: 403,
+              message: "Pending for approval",
+          });
       }
-
-      // Check if the password matches
+      if (userRows[0].isVarified == 0) {
+        return res.status(403).json({
+            status: 403,
+            message: "Pending for approval",
+        });
+    }
+      // Check if the password matches (assuming plain text password comparison for simplicity)
+      // It's highly recommended to use bcrypt or another hashing algorithm in production
       if (user.password !== password) {
-        return res
-          .status(401)
-          .json({ status: 401, message: "Invalid password" });
+          return res.status(401).json({ status: 401, message: "Invalid password" });
       }
 
       // If everything is okay, generate a token or return user details
-      // For simplicity, let's just return the user details for now
       return res.status(200).json({
-        status: 200,
-        message: "Login successful",
-        data: {
-          userId: user.id,
-          firstname: user.firstname,
-          lastname: user.lastname,
-          email: user.email,
-          gender: user.gender,
-          created_at: user.created_at,
-          updated_at: user.updated_at,
-        },
+          status: 200,
+          message: "Login successful",
+          data: {
+              userId: user.id,
+              firstname: user.firstname,
+              lastname: user.lastname,
+              email: user.email,
+              gender: user.gender,
+              created_at: user.created_at,
+              updated_at: user.updated_at,
+          },
       });
-    } catch (e) {
-      console.error(e);
-      return res.status(500).send(e);
+  }catch (e) {
+        console.error(e);
+        return res.status(500).send(e);
     } finally {
-      if (connection && connection.end) {
-        connection.end();
-      }
+        if (connection && connection.end) {
+            connection.end();
+        }
     }
-  },
+},
   async resetPassword(req, res, next) {
     let connection;
 
