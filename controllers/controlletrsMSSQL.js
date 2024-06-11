@@ -947,7 +947,7 @@ const FATSDB = {
       // Upload the file to Supabase storage
       const { data, error } = await supabase.storage
         .from("core") // Replace with your actual bucket name
-        .upload(`uploads/${originalname}`, fs.createReadStream(path), {
+        .upload(`uploads/${originalname+Date.now()}`, fs.createReadStream(path), {
           contentType: file.mimetype,
           cacheControl: "3600",
           upsert: false,
@@ -1265,7 +1265,7 @@ const FATSDB = {
       // Upload the file to Supabase storage
       const { data, error } = await supabase.storage
         .from("core") // Replace with your actual bucket name
-        .upload(`uploads/${originalname}`, fs.createReadStream(path), {
+        .upload(`uploads/${originalname+Date.now()}`, fs.createReadStream(path), {
           contentType: mimetype,
           cacheControl: "3600",
           upsert: false,
@@ -1393,7 +1393,7 @@ const FATSDB = {
       // Upload the file to Supabase storage
       const { data, error } = await supabase.storage
         .from("core") // Replace with your actual bucket name
-        .upload(`uploads/${originalname}`, fs.createReadStream(path), {
+        .upload(`uploads/${originalname+Date.now()}`, fs.createReadStream(path), {
           contentType: file.mimetype,
           cacheControl: "3600",
           upsert: false,
@@ -1490,7 +1490,7 @@ const FATSDB = {
         // Upload the file to Supabase storage
         const { data, error } = await supabase.storage
           .from('core') // Replace with your actual bucket name
-          .upload(`uploads/${originalname}`, fs.createReadStream(path), {
+          .upload(`uploads/${originalname+Date.now()}`, fs.createReadStream(path), {
             contentType: file.mimetype,
             cacheControl: '3600',
             upsert: false,
