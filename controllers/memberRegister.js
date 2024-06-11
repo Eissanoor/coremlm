@@ -115,7 +115,28 @@ const MemberRegister = {
 
       const [result] = await connection.execute(contactInsert, values);
       const contact_id = result.insertId;
+      const insertContactData = `INSERT INTO contact (created_at, updated_at) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
 
+      const [contactResult] = await connection.execute(insertContactData);
+      const contact_id2 = contactResult.insertId;
+
+      const bankdetails = `INSERT INTO bank_details (created_at, updated_at) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+
+      const [bankdetailsresult] = await connection.execute(bankdetails);
+      const bankdetailsresult_id = bankdetailsresult.insertId;
+      const Paymnet = `INSERT INTO payment_detail (created_at, updated_at) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+
+      const [Paymnetresult] = await connection.execute(Paymnet);
+      const Paymnetresult_id = Paymnetresult.insertId;
+      const insertProfileUser = `INSERT INTO profile (user_id, contact_id, bank_details_id,payment_detail_id,created_at, updated_at) VALUES (?, ?,?,?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+
+      const profileValues = [
+        contact_id,
+        contact_id2,
+        bankdetailsresult_id,
+        Paymnetresult_id,
+      ];
+      await connection.execute(insertProfileUser, profileValues);
       // Retrieve the newly inserted member data
       const memberQuery = "SELECT * FROM member_register WHERE id = ?";
       const [memberData] = await connection.execute(memberQuery, [contact_id]);
