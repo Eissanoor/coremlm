@@ -1469,12 +1469,12 @@ const FATSDB = {
       connection = await mysql.createConnection(config);
       await connection.connect();
   
-      const { idproduct } = req.params;
+      const { id } = req.params;
       const file = req.file;
       const fileName = file ? file.originalname : null;
   
       // Fetch the existing product to get the current file URL
-      const [productRows] = await connection.execute("SELECT * FROM product WHERE idproduct = ?", [idproduct]);
+      const [productRows] = await connection.execute("SELECT * FROM product WHERE id = ?", [id]);
   
       if (productRows.length === 0) {
         return res.status(404).json({ status: 404, message: "Product not found" });
@@ -1523,16 +1523,16 @@ const FATSDB = {
       const productPrice = product_price !== undefined ? product_price : product.product_price;
       const productDescription = description !== undefined ? description : product.description;
   
-      const values = [productName, productPv, productPrice, fileUrl, productDescription, idproduct];
+      const values = [productName, productPv, productPrice, fileUrl, productDescription, id];
   
       const productUpdate = `
         UPDATE product 
         SET product_name = ?, product_pv = ?, product_price = ?, product_image = ?, description = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE idproduct = ?
+        WHERE id = ?
       `;
   
       await connection.execute(productUpdate, values);
-      const [updatedProductRows] = await connection.execute("SELECT * FROM product WHERE idproduct = ?", [idproduct]);
+      const [updatedProductRows] = await connection.execute("SELECT * FROM product WHERE id = ?", [id]);
       const updatedProduct = updatedProductRows[0];
   
       return res.status(200).json({
@@ -1556,10 +1556,10 @@ const FATSDB = {
       connection = await mysql.createConnection(config);
       await connection.connect();
   
-      const { idproduct } = req.params;
+      const { id } = req.params;
   
       // Fetch the existing product to get the current file URL
-      const [productRows] = await connection.execute("SELECT * FROM product WHERE idproduct = ?", [idproduct]);
+      const [productRows] = await connection.execute("SELECT * FROM product WHERE id = ?", [id]);
   
       if (productRows.length === 0) {
         return res.status(404).json({ status: 404, message: "Product not found" });
@@ -1581,12 +1581,12 @@ const FATSDB = {
       }
   
       // Delete the product from the database
-      await connection.execute("DELETE FROM product WHERE idproduct = ?", [idproduct]);
+      await connection.execute("DELETE FROM product WHERE id = ?", [id]);
   
       return res.status(200).json({
         status: 200,
         message: "Product has been deleted",
-        data: { productId: idproduct }
+        data: { productId: id }
       });
     } catch (e) {
       console.error(e);

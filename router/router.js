@@ -37,9 +37,9 @@ router.get("/get_all_product",FATSDB.get_all_product)
 router.put("/updateUserforapprovel/:id",FATSDB.updateUserforapprovel)
 router.get("/get_all_users",FATSDB.get_all_users)
 router.get("/get_user_by_id/:id",FATSDB.get_user_by_id)
-router.get("/get_product_by_id/:idproduct",FATSDB.get_product_by_id)
-router.put("/updateProduct/:idproduct", upload.single("product_image"), FATSDB.updateProduct)
-router.delete("/deleteProduct/:idproduct",FATSDB.deleteProduct)
+router.get("/get_product_by_id/:id",FATSDB.get_product_by_id)
+router.put("/updateProduct/:id", upload.single("product_image"), FATSDB.updateProduct)
+router.delete("/deleteProduct/:id",FATSDB.deleteProduct)
 
 //Members
 router.post("/addnewMember",upload.single("bankSlipe"),Member.addnewMember)
