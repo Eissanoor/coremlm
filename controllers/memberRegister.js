@@ -264,45 +264,82 @@ const MemberRegister = {
 
       // Fetch the existing member to get the current data
       const [memberRows] = await connection.execute(
-        "SELECT * FROM member_register WHERE id = ?",
-        [id]
+          "SELECT * FROM member_register WHERE id = ?",
+          [id]
       );
 
       if (memberRows.length === 0) {
-        return res
-          .status(404)
-          .json({ status: 404, message: "Member Id not found" });
+          return res.status(404).json({ status: 404, message: "Member Id not found" });
       }
 
       const member = memberRows[0];
-
       const { isVarified } = req.body;
 
       // Handle undefined values
-      const isVarifiedValue =
-        isVarified !== undefined ? isVarified : member.isVarified;
-
+      const isVarifiedValue = isVarified !== undefined ? isVarified : member.isVarified;
       const values = [isVarifiedValue, id];
 
       const memberUpdate = `
-        UPDATE member_register 
-        SET isVarified = ?
-        WHERE id = ?
+          UPDATE member_register 
+          SET isVarified = ?
+          WHERE id = ?
       `;
 
       await connection.execute(memberUpdate, values);
+      
       const [updatedMemberRows] = await connection.execute(
-        "SELECT * FROM member_register WHERE id = ?",
-        [id]
+          "SELECT * FROM member_register WHERE id = ?",
+          [id]
       );
+
       const updatedMember = updatedMemberRows[0];
+      console.log(updatedMember.email);
+      const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: { user: sendEmail, pass: sendEmailpassword },
+      });
+
+      let mailOptions;
+      if (updatedMember.isVarified == 1) {
+        console.log("vairified show email");
+          mailOptions = {
+              from: sendEmail,
+              to: updatedMember.email,
+              subject: "Congratulations!",
+              html: "We are delighted to inform you that your account has been successfully approved. Welcome to our community!",
+          };
+      } else if (updatedMember.isVarified == 0) {
+        console.log("blocked show email");
+          mailOptions = {
+              from: sendEmail,
+              to: updatedMember.email,
+              subject: "COREMLM!",
+              html: "Please be advised that your account has been blocked. This action was taken due to non-compliance with our policies. For more information, please get in touch with our support team.",
+          };
+      }
+
+      if (mailOptions) {
+          transporter.sendMail(mailOptions, (error, info) => {
+              if (error) {
+                  console.error(error);
+                  return res.status(500).json({
+                      status: 500,
+                      success: false,
+                      message: "Failed to send email",
+                      data: null,
+                  });
+              } else {
+                  console.log("Email sent: " + info.response);
+              }
+          });
+      }
 
       return res.status(200).json({
-        status: 200,
-        message: "Member Register has been updated",
-        data: updatedMember,
+          status: 200,
+          message: "Member Register has been updated",
+          data: updatedMember,
       });
-    } catch (e) {
+  } catch (e) {
       console.error(e);
       return res.status(500).send(e);
     } finally {
