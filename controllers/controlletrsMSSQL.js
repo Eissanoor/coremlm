@@ -250,7 +250,7 @@ const FATSDB = {
       if (user.isVarified === 0) {
         return res.status(403).json({
           status: 403,
-          message: "This account is still not approved",
+          message: "pending for approvel",
         });
       }
 
