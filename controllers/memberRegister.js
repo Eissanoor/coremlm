@@ -202,57 +202,66 @@ const MemberRegister = {
       }
     }
   },
-  async get_all_Member(req, res, next) {
-    try {
-      const connection = await mysql.createConnection(config);
-
-      // Fetch all members
-      const [members] = await connection.execute(
-        "SELECT * FROM member_register"
-      );
-
-      // Fetch add_cart_product data for each member and combine results
-      const memberDataPromises = members.map(async (member) => {
-        // Fetch cart products for the current member
-        const [cartProducts] = await connection.execute(
-          "SELECT * FROM add_cart_product WHERE member_id = ?",
-          [member.id] // assuming member.id is the member's ID
-        );
-
-        // Fetch product details for each cart product
-        const cartProductDetailsPromises = cartProducts.map(
-          async (cartProduct) => {
-            const [productDetails] = await connection.execute(
-              "SELECT * FROM product WHERE id = ?",
-              [cartProduct.product_id] // assuming product_id is the product's ID
-            );
-            return {
-              ...cartProduct,
-              productDetails: productDetails[0], // Assuming there is always one product
-            };
-          }
-        );
-
-        const cartProductsWithDetails = await Promise.all(
-          cartProductDetailsPromises
-        );
-
-        return {
-          ...member,
-          cartProducts: cartProductsWithDetails,
-        };
-      });
-
-      const membersWithCartProducts = await Promise.all(memberDataPromises);
-
-      connection.end();
-
-      return res.status(200).send({ data: membersWithCartProducts });
-    } catch (e) {
-      console.error(e);
-      return res.status(500).send("Internal Server Error");
-    }
-  },
+  // async get_all_Member(req, res, next) {
+  //   try {
+  //     const connection = await mysql.createConnection(config);
+  
+  //     // Fetch all members
+  //     const [members] = await connection.execute("SELECT * FROM member_register");
+  
+  //     // Fetch user data for each member and combine results
+  //     const memberDataPromises = members.map(async (member) => {
+  //       // Remove password field from member object if it exists
+  //       const { password, ...memberWithoutPassword } = member;
+  
+  //       // Fetch cart products for the current member
+  //       const [cartProducts] = await connection.execute(
+  //         "SELECT * FROM add_cart_product WHERE member_id = ?",
+  //         [member.id] // assuming member.id is the member's ID
+  //       );
+  
+  //       // Fetch product details for each cart product
+  //       const cartProductDetailsPromises = cartProducts.map(async (cartProduct) => {
+  //         const [productDetails] = await connection.execute(
+  //           "SELECT * FROM product WHERE id = ?",
+  //           [cartProduct.product_id] // assuming product_id is the product's ID
+  //         );
+  //         return {
+       
+  //           productDetails: productDetails[0], // Assuming there is always one product
+  //         };
+  //       });
+  
+  //       const cartProductsWithDetails = await Promise.all(cartProductDetailsPromises);
+  
+  //       // Fetch additional user details
+  //       const [userDetails] = await connection.execute(
+  //         "SELECT * FROM user WHERE id = ?",
+  //         [member.user_id] // assuming member.user_id is the user's ID
+  //       );
+  
+  //       // Remove password field from userDetails if it exists
+  //       const { password: userPassword, ...userWithoutPassword } = userDetails[0];
+  
+  //       return {
+  //         ...memberWithoutPassword,
+  //         sponerDetails: userWithoutPassword,
+  //         cartProducts: cartProductsWithDetails,
+  //       };
+  //     });
+  
+  //     const membersWithCartProductsAndUserDetails = await Promise.all(memberDataPromises);
+  
+  //     connection.end();
+  
+  //     return res.status(200).send({ data: membersWithCartProductsAndUserDetails });
+  //   } catch (e) {
+  //     console.error(e);
+  //     return res.status(500).send("Internal Server Error");
+  //   }
+  // }
+  // ,
+  
   async updateMember(req, res, next) {
     let connection;
 
@@ -387,5 +396,64 @@ const MemberRegister = {
       }
     }
   },
+  async get_all_Member(req, res, next) {
+    try {
+      const connection = await mysql.createConnection(config);
+  
+      // Fetch all members
+      const [members] = await connection.execute("SELECT * FROM member_register");
+  
+      // Fetch user data for each member and combine results
+      const memberDataPromises = members.map(async (member) => {
+        // Remove password field from member object if it exists
+        const { password, ...memberWithoutPassword } = member;
+  
+        // Fetch the first cart product for the current member
+        const [cartProducts] = await connection.execute(
+          "SELECT * FROM add_cart_product WHERE member_id = ? LIMIT 1",
+          [member.id] // assuming member.id is the member's ID
+        );
+  
+        let cartProductWithDetails = null;
+        if (cartProducts.length > 0) {
+          const cartProduct = cartProducts[0];
+          const [productDetails] = await connection.execute(
+            "SELECT * FROM product WHERE id = ?",
+            [cartProduct.product_id] // assuming product_id is the product's ID
+          );
+  
+          cartProductWithDetails = {
+           
+            productDetails: productDetails[0], // Assuming there is always one product
+          };
+        }
+  
+        // Fetch additional user details
+        const [userDetails] = await connection.execute(
+          "SELECT * FROM user WHERE id = ?",
+          [member.user_id] // assuming member.user_id is the user's ID
+        );
+  
+        // Remove password field from userDetails if it exists
+        const { password: userPassword, ...userWithoutPassword } = userDetails[0];
+  
+        return {
+          ...memberWithoutPassword,
+          SponserDetail: userWithoutPassword,
+          cartProduct: cartProductWithDetails,
+        };
+      });
+  
+      const membersWithCartProductsAndUserDetails = await Promise.all(memberDataPromises);
+  
+      connection.end();
+  
+      return res.status(200).send({ data: membersWithCartProductsAndUserDetails });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send("Internal Server Error");
+    }
+  }
+  
 };
 export default MemberRegister;
