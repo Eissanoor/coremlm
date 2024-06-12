@@ -69,13 +69,40 @@ const FATSDB = {
       connection = await mysql.createConnection(config);
 
       const getprofile = `
-          SELECT profile.*, 
-                 user_profile.firstname AS user_firstname, user_profile.lastname AS user_lastname,
-                 member_register.firstname AS member_firstname, member_register.lastname AS member_lastname,
-                 contact.*, bank_details.*, payment_detail.*, role.*
+          SELECT profile.*,
+                 COALESCE(user_profile.firstname, member_profile.firstname) AS firstname,
+                 COALESCE(user_profile.lastname, member_profile.lastname) AS lastname,
+                 COALESCE(user_profile.email, member_profile.email) AS email,
+                 COALESCE(user_profile.password, member_profile.password) AS password,
+                 COALESCE(user_profile.gender, member_profile.gender) AS gender,
+                 user_profile.twitter AS twitter,
+                 user_profile.facebook AS facebook,
+                 user_profile.image AS image,
+                 COALESCE(user_profile.isVarified, member_profile.isVarified) AS isVarified,
+                 member_profile.date_of_birth AS date_of_birth,
+                 member_profile.phone_no AS phone_no,
+                 member_profile.user_name AS user_name,
+                 member_profile.bankSlipe AS bankSlipe,
+                 member_profile.cashOnDelivery AS cashOnDelivery,
+                 contact.country AS country,
+                 contact.state AS state,
+                 contact.city AS city,
+                 contact.postcode AS postcode,
+                 contact.mobile AS mobile,
+                 contact.name AS contact_name,
+                 contact.address1 AS address1,
+                 contact.address2 AS address2,
+                 bank_details.bank_name AS bank_name,
+                 bank_details.branch_name AS branch_name,
+                 bank_details.account_holder AS account_holder,
+                 bank_details.account_number AS account_number,
+                 bank_details.IFSC_code AS IFSC_code,
+                 bank_details.pan_number AS pan_number,
+                 payment_detail.payment_detail_name AS payment_detail_name,
+                 payment_detail.payment_detail_method AS payment_detail_method
           FROM profile
           LEFT JOIN user AS user_profile ON profile.user_id = user_profile.id
-          LEFT JOIN member_register AS member_register ON profile.user_id = member_register.id
+          LEFT JOIN member_register AS member_profile ON profile.user_id = member_profile.id
           LEFT JOIN contact ON profile.contact_id = contact.id
           LEFT JOIN bank_details ON profile.bank_details_id = bank_details.id
           LEFT JOIN payment_detail ON profile.payment_detail_id = payment_detail.id
@@ -87,15 +114,52 @@ const FATSDB = {
       const [getprofileId] = await connection.execute(getprofile, userIdAndProfileId);
       connection.end();
 
-      // Combining user and member information into a single profile object if both exist
-      let profile = getprofileId[0];
-      if (profile) {
-          profile.user_firstname = profile.user_firstname || profile.member_firstname;
-          profile.user_lastname = profile.user_lastname || profile.member_lastname;
-      }
+      // Default profile data structure
+      const defaultProfileData = {
+          id: null,
+          user_id: null,
+          role_id: null,
+          contact_id: null,
+          created_at: null,
+          updated_at: null,
+          bank_details_id: null,
+          payment_detail_id: null,
+          firstname: null,
+          lastname: null,
+          email: null,
+          password: null,
+          gender: null,
+          twitter: null,
+          facebook: null,
+          image: null,
+          isVarified: null,
+          date_of_birth: null,
+          phone_no: null,
+          user_name: null,
+          bankSlipe: null,
+          cashOnDelivery: null,
+          country: null,
+          state: null,
+          city: null,
+          postcode: null,
+          mobile: null,
+          name: null,
+          address1: null,
+          address2: null,
+          bank_name: null,
+          branch_name: null,
+          account_holder: null,
+          account_number: null,
+          IFSC_code: null,
+          pan_number: null,
+          payment_detail_name: null,
+          payment_detail_method: null,
+      };
 
-      return res.status(200).send({ status: 200, data: profile });
-  } catch (e) {
+      const profileData = { ...defaultProfileData, ...getprofileId[0] };
+
+      return res.status(200).send({ status: 200, data: profileData });
+  }catch (e) {
       console.error(e);
       return res.status(500).send("Internal Server Error");
     }
