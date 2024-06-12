@@ -232,72 +232,91 @@ WHERE profile.user_id = ?
       connection = await mysql.createConnection(config);
       await connection.connect();
 
-      const userId = req.params.id;
-
+      const id = req.query.id;
+      const email = req.query.email;
+      
       // Fetch existing user data
       const [existingUser] = await connection.execute(
-        "SELECT * FROM user WHERE id = ?",
-        [userId]
+          "SELECT * FROM user WHERE id = ? AND email = ?",
+          [id, email]
       );
 
-      if (existingUser.length === 0) {
-        return res.status(404).json({
-          status: 404,
-          message: "User not found",
-        });
+      // Fetch existing member data
+      const [existingMember] = await connection.execute(
+          "SELECT * FROM member_register WHERE id = ? AND email = ?",
+          [id, email]
+      );
+
+      // Determine which table to update
+      let tableToUpdate;
+      let existingRecord;
+
+      if (existingUser.length > 0) {
+          tableToUpdate = 'user';
+          existingRecord = existingUser[0];
+      } else if (existingMember.length > 0) {
+          tableToUpdate = 'member_register';
+          existingRecord = existingMember[0];
+      } else {
+          return res.status(404).json({
+              status: 404,
+              message: "Record not found",
+          });
       }
 
-      const user = existingUser[0];
-
       // Use existing data if no new data is provided
-      const updatedFirstName = req.body.firstname || user.firstname;
-      const updatedLastName = req.body.lastname || user.lastname;
-      const updatedGender = req.body.gender || user.gender;
-      const updatedTwitter = req.body.twitter || user.twitter;
-      const updatedFacebook = req.body.facebook || user.facebook;
-      const updatedlinkedIn = req.body.linkedIn || user.linkedIn;
+      const updatedFirstName = req.body.firstname !== undefined ? req.body.firstname : existingRecord.firstname;
+      const updatedLastName = req.body.lastname !== undefined ? req.body.lastname : existingRecord.lastname;
+      const updatedGender = req.body.gender !== undefined ? req.body.gender : existingRecord.gender;
+      const updatedTwitter = req.body.twitter !== undefined ? req.body.twitter : existingRecord.twitter;
+      const updatedFacebook = req.body.facebook !== undefined ? req.body.facebook : existingRecord.facebook;
+      const updatedlinkedIn = req.body.linkedIn !== undefined ? req.body.linkedIn : existingRecord.linkedIn;
 
-      const userUpdate = `
-        UPDATE user
-        SET firstname = ?, lastname = ?, gender = ?, twitter = ?, facebook = ?, linkedIn = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
+      const updateQuery = `
+          UPDATE ${tableToUpdate}
+          SET firstname = ?, lastname = ?, gender = ?, twitter = ?, facebook = ?, linkedIn = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ? AND email = ?
       `;
 
       const values = [
-        updatedFirstName,
-        updatedLastName,
-        updatedGender,
-        updatedTwitter,
-        updatedFacebook,
-        updatedlinkedIn,
-        userId,
+          updatedFirstName,
+          updatedLastName,
+          updatedGender,
+          updatedTwitter,
+          updatedFacebook,
+          updatedlinkedIn,
+          id,
+          email
       ];
 
-      const [result] = await connection.execute(userUpdate, values);
+      // Replace undefined with null in the values array
+      const sanitizedValues = values.map(value => value === undefined ? null : value);
+
+      const [result] = await connection.execute(updateQuery, sanitizedValues);
 
       if (result.affectedRows === 0) {
-        return res.status(404).json({
-          status: 404,
-          message: "User not found",
-        });
+          return res.status(404).json({
+              status: 404,
+              message: "Record not found",
+          });
       }
 
-      // Return the updated (or existing) user data
+      // Return the updated (or existing) record data
       return res.status(200).json({
-        status: 200,
-        message: "User has been updated successfully",
-        data: {
-          id: userId,
-          firstname: updatedFirstName,
-          lastname: updatedLastName,
-          gender: updatedGender,
-          twitter: updatedTwitter,
-          facebook: updatedFacebook,
-          linkedIn: updatedlinkedIn,
-          updated_at: new Date(), // assuming the database updates the timestamp automatically
-        },
+          status: 200,
+          message: "Record has been updated successfully",
+          data: {
+              id: id,
+              firstname: updatedFirstName,
+              lastname: updatedLastName,
+              gender: updatedGender,
+              twitter: updatedTwitter,
+              facebook: updatedFacebook,
+              linkedIn: updatedlinkedIn,
+              updated_at: new Date(), // assuming the database updates the timestamp automatically
+          },
       });
-    } catch (e) {
+  } catch (e) {
       console.error(e);
       return res.status(500).send(e);
     } finally {
