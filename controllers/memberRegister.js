@@ -43,7 +43,7 @@ const MemberRegister = {
         "user_name",
         "user_id",
         "password",
-        "lastname",
+        
       ];
 
       for (const field of requiredFields) {
