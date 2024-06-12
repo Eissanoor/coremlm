@@ -34,7 +34,7 @@ const MemberRegister = {
     try {
       // Ensure all required fields are present in the request body
       const requiredFields = [
-        "first_name",
+        "firstname",
         "date_of_birth",
         "gender",
         "email",
@@ -97,11 +97,11 @@ const MemberRegister = {
 
       const contactInsert = `
         INSERT INTO member_register 
-        (first_name, date_of_birth, gender, email, phone_no, user_name, user_id, password, bankSlipe, cashOnDelivery, created_at, updated_at) 
+        (firstname, date_of_birth, gender, email, phone_no, user_name, user_id, password, bankSlipe, cashOnDelivery, created_at, updated_at) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
 
       const values = [
-        req.body.first_name,
+        req.body.firstname,
         req.body.date_of_birth,
         req.body.gender,
         req.body.email,
