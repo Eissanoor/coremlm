@@ -43,7 +43,7 @@ const MemberRegister = {
         "user_name",
         "user_id",
         "password",
-        
+     
       ];
 
       for (const field of requiredFields) {
@@ -99,8 +99,8 @@ const MemberRegister = {
 
       const contactInsert = `
         INSERT INTO member_register 
-        (firstname, date_of_birth, gender, email, phone_no, user_name, user_id, password, bankSlipe, cashOnDelivery,lastname, created_at, updated_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+        (firstname, date_of_birth, gender, email, phone_no, user_name, user_id, password, bankSlipe, cashOnDelivery, created_at, updated_at) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
 
       const values = [
         req.body.firstname,
@@ -113,7 +113,7 @@ const MemberRegister = {
         req.body.password,
         fileUrl,
         req.body.cashOnDelivery,
-        req.body.lastname
+       
       ];
 
       const [result] = await connection.execute(contactInsert, values);
