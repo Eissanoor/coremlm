@@ -64,29 +64,38 @@ const FATSDB = {
     }
   },
   async user_profileuserID(req, res, next) {
+    let connection;
     try {
-      const connection = await mysql.createConnection(config);
+      connection = await mysql.createConnection(config);
 
       const getprofile = `
-      SELECT * FROM profile
-    LEFT JOIN user AS user_profile ON profile.user_id = user_profile.id
-    LEFT JOIN member_register AS member_profile ON profile.user_id = member_profile.id
-    LEFT JOIN contact ON profile.contact_id = contact.id
-    LEFT JOIN bank_details ON profile.bank_details_id = bank_details.id
-    LEFT JOIN payment_detail ON profile.payment_detail_id = payment_detail.id
-    LEFT JOIN role ON profile.role_id = role.id
-    WHERE profile.user_id = ?
-    `;
+          SELECT profile.*, 
+                 user_profile.firstname AS user_firstname, user_profile.lastname AS user_lastname,
+                 member_register.firstname AS member_firstname, member_register.lastname AS member_lastname,
+                 contact.*, bank_details.*, payment_detail.*, role.*
+          FROM profile
+          LEFT JOIN user AS user_profile ON profile.user_id = user_profile.id
+          LEFT JOIN member_register AS member_register ON profile.user_id = member_register.id
+          LEFT JOIN contact ON profile.contact_id = contact.id
+          LEFT JOIN bank_details ON profile.bank_details_id = bank_details.id
+          LEFT JOIN payment_detail ON profile.payment_detail_id = payment_detail.id
+          LEFT JOIN role ON profile.role_id = role.id
+          WHERE profile.user_id = ?
+      `;
 
-      const userIdAndprofileId = [req.params.user_id];
-      const getprofileId = await connection.execute(
-        getprofile,
-        userIdAndprofileId
-      );
+      const userIdAndProfileId = [req.params.user_id];
+      const [getprofileId] = await connection.execute(getprofile, userIdAndProfileId);
       connection.end();
 
-      return res.status(200).send({ status: 200, data: getprofileId[0][0] });
-    } catch (e) {
+      // Combining user and member information into a single profile object if both exist
+      let profile = getprofileId[0];
+      if (profile) {
+          profile.user_firstname = profile.user_firstname || profile.member_firstname;
+          profile.user_lastname = profile.user_lastname || profile.member_lastname;
+      }
+
+      return res.status(200).send({ status: 200, data: profile });
+  } catch (e) {
       console.error(e);
       return res.status(500).send("Internal Server Error");
     }
