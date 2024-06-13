@@ -477,7 +477,56 @@ const MemberRegister = {
       console.error(e);
       return res.status(500).send("Internal Server Error");
     }
-  }
-  
+  },
+  async getUserbyId(req, res, next) {
+    let connection;
+
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+
+      const { id } = req.query; // Assuming you pass the user ID as a URL parameter
+
+      // Get user record by ID
+      const [userRows] = await connection.execute(
+          "SELECT * FROM user WHERE id = ?",
+          [id]
+      );
+
+      if (userRows.length === 0) {
+          return res.status(404).json({
+              status: 404,
+              message: "User not found",
+          });
+      }
+
+      const user = userRows[0];
+
+      // Get member_register records by user_id from user
+      const [memberRows] = await connection.execute(
+          "SELECT * FROM member_register WHERE user_id = ?",
+          [id]
+      );
+
+      // No need to check if memberRows.length is zero, since it's valid to have no associated member_register entries
+      const memberRegister = memberRows;
+
+      return res.status(200).json({
+          status: 200,
+          message: "User details retrieved successfully",
+          data: {
+              user,
+              memberRegister
+          },
+      });
+  } catch (e) {
+        console.error(e);
+        return res.status(500).send(e);
+    } finally {
+        if (connection && connection.end) {
+            connection.end();
+        }
+    }
+}
 };
 export default MemberRegister;

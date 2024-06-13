@@ -51,4 +51,7 @@ router.delete("/deleteMember/:id",Member.deleteMember)
 //logo
 router.put("/addnewLogo/:id",upload.single("logo"),LogoCon.addnewLogo )
 router.get("/getLogo",LogoCon.getLogo)
+
+//tree
+router.get("/getUserbyId",Member.getUserbyId)
 export default router;
