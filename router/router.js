@@ -3,6 +3,7 @@ const router = express.Router();
 import upload from "../config/multerConfig.js"
 import FATSDB from "../controllers/controlletrsMSSQL.js";
 import Member from "../controllers/memberRegister.js"
+import LogoCon from "../controllers/logo.js";
 router.get("/allgetprofile", FATSDB.allgetprofile)
 router.get("/user_profile", FATSDB.user_profile)
 router.post("/addnewuser", FATSDB.addnewuser)
@@ -46,4 +47,8 @@ router.post("/addnewMember",upload.single("bankSlipe"),Member.addnewMember)
 router.get("/get_all_Member",Member.get_all_Member)
 router.put("/updateMember/:id",Member.updateMember)
 router.delete("/deleteMember/:id",Member.deleteMember)
+
+//logo
+router.put("/addnewLogo/:id",upload.single("logo"),LogoCon.addnewLogo )
+router.get("/getLogo",LogoCon.getLogo)
 export default router;
