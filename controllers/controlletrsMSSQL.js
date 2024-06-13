@@ -1435,57 +1435,72 @@ WHERE profile.user_id = ?
       connection = await mysql.createConnection(config);
       await connection.connect();
 
-      const userId = req.params.id; // Assuming user ID is in req.params.id
+      const userId = req.query.id;
+      const email = req.query.email;
 
-      if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
+      if (!userId || !email) {
+          return res.status(400).json({ error: "User ID and email are required" });
       }
 
-      // Retrieve the existing image URL from the database
-      const [rows] = await connection.execute(
-        "SELECT image FROM user WHERE id = ?",
-        [userId]
-      );
+      // Function to delete image from a table
+      async function deleteImageFromTable(tableName) {
+          const [rows] = await connection.execute(
+              `SELECT image FROM ${tableName} WHERE id = ? AND email = ?`,
+              [userId, email]
+          );
 
-      if (rows.length === 0) {
-        return res.status(404).json({ error: "User not found" });
+          if (rows.length === 0) {
+              return null; // No matching record found
+          }
+
+          const imageUrl = rows[0].image;
+
+          if (!imageUrl) {
+              return res.status(400).json({ error: "No profile image to delete" });
+          }
+
+          // Extract the file path from the URL
+          const filePath = imageUrl.split(`${supabaseUrl}/storage/v1/object/public/core/`)[1];
+
+          // Delete the file from Supabase storage
+          const { error: deleteError } = await supabase.storage
+              .from('core') // Replace with your actual bucket name
+              .remove([filePath]);
+
+          if (deleteError) {
+              throw deleteError;
+          }
+
+          // Update the table to set the image to NULL
+          const updateQuery = `
+              UPDATE ${tableName}
+              SET image = NULL, updated_at = CURRENT_TIMESTAMP
+              WHERE id = ? AND email = ?
+          `;
+
+          await connection.execute(updateQuery, [userId, email]);
+          
+          return tableName;
       }
 
-      const imageUrl = rows[0].image;
+      // Try to delete image from 'user' table
+      let tableName = await deleteImageFromTable('user');
 
-      if (!imageUrl) {
-        return res.status(400).json({ error: "No profile image to delete" });
+      // If not found in 'user' table, try 'member_register'
+      if (!tableName) {
+          tableName = await deleteImageFromTable('member_register');
       }
 
-      // Extract the file path from the URL
-      const filePath = imageUrl.split(
-        `${supabaseUrl}/storage/v1/object/public/core/`
-      )[1];
-
-      // Delete the file from Supabase storage
-      const { error: deleteError } = await supabase.storage
-        .from("core") // Replace with your actual bucket name
-        .remove([filePath]);
-
-      if (deleteError) {
-        throw deleteError;
+      if (!tableName) {
+          return res.status(404).json({ error: "User not found in any table" });
       }
-
-      // Update user image in the database
-      const userUpdate = `
-            UPDATE user
-            SET image = NULL, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-        `;
-
-      const [result] = await connection.execute(userUpdate, [userId]);
 
       return res.status(200).json({
-        status: 200,
-        message: "User profile image has been deleted",
-        data: null,
+          status: 200,
+          message: `User profile image has been deleted from ${tableName} table`,
+          data: null,
       });
-    } catch (e) {
+  } catch (e) {
       console.error(e);
       return res.status(500).json(e.message);
     } finally {
