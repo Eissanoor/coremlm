@@ -1364,52 +1364,62 @@ WHERE profile.user_id = ?
     try {
       connection = await mysql.createConnection(config);
       await connection.connect();
-
+      await connection.beginTransaction(); // Start a transaction
+  
       const file = req.file;
-
+  
       if (!file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
-
+  
       const { path, originalname, mimetype } = file;
-
-      // Upload the file to Supabase storage
+      const timestampedFilename = `${originalname}_${Date.now()}`;
       const { data, error } = await supabase.storage
-        .from("core") // Replace with your actual bucket name
-        .upload(`uploads/${originalname+Date.now()}`, fs.createReadStream(path), {
+        .from('core') // Replace with your actual bucket name
+        .upload(`uploads/${timestampedFilename}`, fs.createReadStream(path), {
           contentType: mimetype,
-          cacheControl: "3600",
+          cacheControl: '3600',
           upsert: false,
-          duplex: "half",
+          duplex: 'half',
         });
-
+  
       if (error) {
         throw error;
       }
-
-      const fileUrl = `${supabaseUrl}/storage/v1/object/public/core/uploads/${originalname}`;
-
-      // Ensure user ID is available
-      const userId = req.params.id; // Assuming user ID is in req.user.id
-      if (!userId) {
-        throw new Error("User ID is required");
+  
+      const fileUrl = `${supabaseUrl}/storage/v1/object/public/core/uploads/${timestampedFilename}`;
+      const userId = req.query.id;
+      const email = req.query.email;
+  
+      if (!userId || !email) {
+        throw new Error("User ID and email are required");
       }
-
-      // Update user image in the database
+  
       const userUpdate = `
         UPDATE user
         SET image = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
+        WHERE id = ? AND email = ?
       `;
-
-      const [result] = await connection.execute(userUpdate, [fileUrl, userId]);
-
+  
+      const [userResult] = await connection.execute(userUpdate, [fileUrl, userId, email]);
+  
+      // Add the same logic for another table
+      const anotherTableUpdate = `
+        UPDATE member_register
+        SET image = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND email = ?
+      `;
+  
+      const [anotherResult] = await connection.execute(anotherTableUpdate, [fileUrl, userId, email]);
+  
+      await connection.commit(); // Commit the transaction
+  
       return res.status(201).json({
         status: 201,
-        message: "User profile image has been updated",
+        message: "User profile image has been updated in both tables",
         data: { imageUrl: fileUrl },
       });
-    } catch (e) {
+    }catch (e) {
       console.error(e);
       return res.status(500).json(e.message);
     } finally {
