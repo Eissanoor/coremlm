@@ -80,21 +80,21 @@ const MemberRegister = {
         const file = req.file;
         const { path, originalname, mimetype } = file;
 
-        // Upload the file to Supabase storage
+        const timestampedFilename = `${originalname}_${Date.now()}`;
         const { data, error } = await supabase.storage
-          .from("core") // Replace with your actual bucket name
-          .upload(`uploads/${originalname+Date.now()}`, fs.createReadStream(path), {
-            contentType: mimetype,
-            cacheControl: "3600",
-            upsert: false,
-            duplex: "half",
-          });
+        .from('core') // Replace with your actual bucket name
+        .upload(`uploads/${timestampedFilename}`, fs.createReadStream(path), {
+          contentType: mimetype,
+          cacheControl: '3600',
+          upsert: false,
+          duplex: 'half',
+        });
 
         if (error) {
           throw error;
         }
 
-        fileUrl = `${supabaseUrl}/storage/v1/object/public/core/uploads/${originalname}`;
+        fileUrl = `${supabaseUrl}/storage/v1/object/public/core/uploads/${timestampedFilename}`;
       }
 
       const contactInsert = `
