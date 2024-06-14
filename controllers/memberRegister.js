@@ -508,8 +508,19 @@ const MemberRegister = {
           [id]
       );
 
-      // No need to check if memberRows.length is zero, since it's valid to have no associated member_register entries
-      const memberRegister = memberRows;
+      // Recursively get all members for a given user_id
+      const getMembersRecursive = async (userId) => {
+          const [members] = await connection.execute(
+              "SELECT * FROM member_register WHERE user_id = ?",
+              [userId]
+          );
+          for (const member of members) {
+              member.subMembers = await getMembersRecursive(member.id);
+          }
+          return members;
+      };
+
+      const memberRegister = await getMembersRecursive(user.id);
 
       return res.status(200).json({
           status: 200,
