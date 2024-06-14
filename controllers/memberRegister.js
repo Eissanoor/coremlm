@@ -484,31 +484,34 @@ const MemberRegister = {
     let connection;
 
     try {
-      connection = await mysql.createConnection(config);
-      await connection.connect();
-
+      const connection = await mysql.createConnection(config);
       const { id } = req.query; // Assuming you pass the user ID as a URL parameter
 
-      // Get user record by ID
+      // Get user record by ID from user table
       const [userRows] = await connection.execute(
           "SELECT * FROM user WHERE id = ?",
           [id]
       );
 
-      if (userRows.length === 0) {
-          return res.status(404).json({
-              status: 404,
-              message: "User not found",
-          });
+      let user;
+      if (userRows.length > 0) {
+          user = userRows[0];
+      } else {
+          // If user not found in user table, check member_register table
+          const [memberUserRows] = await connection.execute(
+              "SELECT * FROM member_register WHERE id = ?",
+              [id]
+          );
+
+          if (memberUserRows.length === 0) {
+              return res.status(404).json({
+                  status: 404,
+                  message: "User not found",
+              });
+          }
+
+          user = memberUserRows[0];
       }
-
-      const user = userRows[0];
-
-      // Get member_register records by user_id from user
-      const [memberRows] = await connection.execute(
-          "SELECT * FROM member_register WHERE user_id = ?",
-          [id]
-      );
 
       // Recursively get all members for a given user_id
       const getMembersRecursive = async (userId) => {
