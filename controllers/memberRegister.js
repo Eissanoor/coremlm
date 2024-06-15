@@ -35,7 +35,7 @@ const MemberRegister = {
       // Ensure all required fields are present in the request body
       const requiredFields = [
         "firstname",
-        
+
         "date_of_birth",
         "gender",
         "email",
@@ -43,7 +43,6 @@ const MemberRegister = {
         "user_name",
         "user_id",
         "password",
-     
       ];
 
       for (const field of requiredFields) {
@@ -66,12 +65,10 @@ const MemberRegister = {
       const emailExists = emailCheckResult[0].count > 0;
 
       if (emailExists) {
-        return res
-          .status(400)
-          .json({
-            status: 400,
-            message: "An account with this email already exists.",
-          });
+        return res.status(400).json({
+          status: 400,
+          message: "An account with this email already exists.",
+        });
       }
 
       let fileUrl = null;
@@ -82,13 +79,13 @@ const MemberRegister = {
 
         const timestampedFilename = `${originalname}_${Date.now()}`;
         const { data, error } = await supabase.storage
-        .from('core') // Replace with your actual bucket name
-        .upload(`uploads/${timestampedFilename}`, fs.createReadStream(path), {
-          contentType: mimetype,
-          cacheControl: '3600',
-          upsert: false,
-          duplex: 'half',
-        });
+          .from("core") // Replace with your actual bucket name
+          .upload(`uploads/${timestampedFilename}`, fs.createReadStream(path), {
+            contentType: mimetype,
+            cacheControl: "3600",
+            upsert: false,
+            duplex: "half",
+          });
 
         if (error) {
           throw error;
@@ -113,7 +110,6 @@ const MemberRegister = {
         req.body.password,
         fileUrl,
         req.body.cashOnDelivery,
-       
       ];
 
       const [result] = await connection.execute(contactInsert, values);
@@ -229,21 +225,21 @@ const MemberRegister = {
   // async get_all_Member(req, res, next) {
   //   try {
   //     const connection = await mysql.createConnection(config);
-  
+
   //     // Fetch all members
   //     const [members] = await connection.execute("SELECT * FROM member_register");
-  
+
   //     // Fetch user data for each member and combine results
   //     const memberDataPromises = members.map(async (member) => {
   //       // Remove password field from member object if it exists
   //       const { password, ...memberWithoutPassword } = member;
-  
+
   //       // Fetch cart products for the current member
   //       const [cartProducts] = await connection.execute(
   //         "SELECT * FROM add_cart_product WHERE member_id = ?",
   //         [member.id] // assuming member.id is the member's ID
   //       );
-  
+
   //       // Fetch product details for each cart product
   //       const cartProductDetailsPromises = cartProducts.map(async (cartProduct) => {
   //         const [productDetails] = await connection.execute(
@@ -251,33 +247,33 @@ const MemberRegister = {
   //           [cartProduct.product_id] // assuming product_id is the product's ID
   //         );
   //         return {
-       
+
   //           productDetails: productDetails[0], // Assuming there is always one product
   //         };
   //       });
-  
+
   //       const cartProductsWithDetails = await Promise.all(cartProductDetailsPromises);
-  
+
   //       // Fetch additional user details
   //       const [userDetails] = await connection.execute(
   //         "SELECT * FROM user WHERE id = ?",
   //         [member.user_id] // assuming member.user_id is the user's ID
   //       );
-  
+
   //       // Remove password field from userDetails if it exists
   //       const { password: userPassword, ...userWithoutPassword } = userDetails[0];
-  
+
   //       return {
   //         ...memberWithoutPassword,
   //         sponerDetails: userWithoutPassword,
   //         cartProducts: cartProductsWithDetails,
   //       };
   //     });
-  
+
   //     const membersWithCartProductsAndUserDetails = await Promise.all(memberDataPromises);
-  
+
   //     connection.end();
-  
+
   //     return res.status(200).send({ data: membersWithCartProductsAndUserDetails });
   //   } catch (e) {
   //     console.error(e);
@@ -285,68 +281,71 @@ const MemberRegister = {
   //   }
   // }
   // ,
-  
+
   async updateMember(req, res, next) {
     let connection;
 
     try {
       connection = await mysql.createConnection(config);
       await connection.connect();
-  
+
       const { id } = req.params;
-  
+
       // Fetch the existing member to get the current data
       const [memberRows] = await connection.execute(
         "SELECT * FROM member_register WHERE id = ?",
         [id]
       );
-  
+
       if (memberRows.length === 0) {
-        return res.status(404).json({ status: 404, message: "Member Id not found" });
+        return res
+          .status(404)
+          .json({ status: 404, message: "Member Id not found" });
       }
-  
+
       const member = memberRows[0];
       const { isVarified, password } = req.body;
-  
+
       // Handle undefined values
-      const isVarifiedValue = isVarified !== undefined ? isVarified : member.isVarified;
-  
+      const isVarifiedValue =
+        isVarified !== undefined ? isVarified : member.isVarified;
+
       // Update query and values
       const updateFields = [];
       const values = [];
-  
+
       if (isVarified !== undefined) {
-        updateFields.push('isVarified = ?');
+        updateFields.push("isVarified = ?");
         values.push(isVarifiedValue);
       }
-  
+
       if (password) {
-        updateFields.push('password = ?');
+        updateFields.push("password = ?");
         values.push(password);
       }
-  
+
       values.push(id);
-  
+
       const memberUpdate = `
         UPDATE member_register 
-        SET ${updateFields.join(', ')}
+        SET ${updateFields.join(", ")}
         WHERE id = ?
       `;
-  
+
       await connection.execute(memberUpdate, values);
-  
+
       const [updatedMemberRows] = await connection.execute(
         "SELECT * FROM member_register WHERE id = ?",
         [id]
       );
-  
+
       const updatedMember = updatedMemberRows[0];
-  
+
       const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: { user: sendEmail, pass: sendEmailpassword },
       });
-  
+
       let mailOptions;
 
       if (updatedMember.isVarified == 1) {
@@ -366,7 +365,7 @@ const MemberRegister = {
           html: "Please be advised that your account has been blocked. This action was taken due to non-compliance with our policies. For more information, please get in touch with our support team.",
         };
       }
-  
+
       if (mailOptions) {
         transporter.sendMail(mailOptions, (error, info) => {
           if (error) {
@@ -382,13 +381,13 @@ const MemberRegister = {
           }
         });
       }
-  
+
       return res.status(200).json({
         status: 200,
         message: "Member Register has been updated",
         data: updatedMember,
       });
-    }catch (e) {
+    } catch (e) {
       console.error(e);
       return res.status(500).send(e);
     } finally {
@@ -441,57 +440,63 @@ const MemberRegister = {
       const connection = await mysql.createConnection(config);
 
       // Fetch all members
-      const [members] = await connection.execute("SELECT * FROM member_register");
+      const [members] = await connection.execute(
+        "SELECT * FROM member_register"
+      );
 
       // Fetch user data for each member and combine results
       const memberDataPromises = members.map(async (member) => {
-          // Remove password field from member object if it exists
-          const { password, ...memberWithoutPassword } = member;
+        // Remove password field from member object if it exists
+        const { password, ...memberWithoutPassword } = member;
 
-          // Fetch the first cart product for the current member
-          const [cartProducts] = await connection.execute(
-              "SELECT * FROM add_cart_product WHERE member_id = ? LIMIT 1",
-              [member.id] // assuming member.id is the member's ID
+        // Fetch the first cart product for the current member
+        const [cartProducts] = await connection.execute(
+          "SELECT * FROM add_cart_product WHERE member_id = ? LIMIT 1",
+          [member.id] // assuming member.id is the member's ID
+        );
+
+        let cartProductWithDetails = null;
+        if (cartProducts.length > 0) {
+          const cartProduct = cartProducts[0];
+          const [productDetails] = await connection.execute(
+            "SELECT * FROM product WHERE id = ?",
+            [cartProduct.product_id] // assuming product_id is the product's ID
           );
 
-          let cartProductWithDetails = null;
-          if (cartProducts.length > 0) {
-              const cartProduct = cartProducts[0];
-              const [productDetails] = await connection.execute(
-                  "SELECT * FROM product WHERE id = ?",
-                  [cartProduct.product_id] // assuming product_id is the product's ID
-              );
-
-              cartProductWithDetails = {
-                  productDetails: productDetails[0], // Assuming there is always one product
-              };
-          }
-
-          // Fetch additional user details
-          const [userDetails] = await connection.execute(
-              "SELECT * FROM user WHERE id = ?",
-              [member.user_id] // assuming member.user_id is the user's ID
-          );
-
-          let userWithoutPassword = null;
-          if (userDetails.length > 0) {
-              const { password: userPassword, ...user } = userDetails[0];
-              userWithoutPassword = user;
-          }
-
-          return {
-              ...memberWithoutPassword,
-              SponserDetail: userWithoutPassword,
-              cartProduct: cartProductWithDetails,
+          cartProductWithDetails = {
+            productDetails: productDetails[0], // Assuming there is always one product
           };
+        }
+
+        // Fetch additional user details
+        const [userDetails] = await connection.execute(
+          "SELECT * FROM user WHERE id = ?",
+          [member.user_id] // assuming member.user_id is the user's ID
+        );
+
+        let userWithoutPassword = null;
+        if (userDetails.length > 0) {
+          const { password: userPassword, ...user } = userDetails[0];
+          userWithoutPassword = user;
+        }
+
+        return {
+          ...memberWithoutPassword,
+          SponserDetail: userWithoutPassword,
+          cartProduct: cartProductWithDetails,
+        };
       });
 
-      const membersWithCartProductsAndUserDetails = await Promise.all(memberDataPromises);
+      const membersWithCartProductsAndUserDetails = await Promise.all(
+        memberDataPromises
+      );
 
       connection.end();
 
-      return res.status(200).send({ data: membersWithCartProductsAndUserDetails });
-  } catch (e) {
+      return res
+        .status(200)
+        .send({ data: membersWithCartProductsAndUserDetails });
+    } catch (e) {
       console.error(e);
       return res.status(500).send("Internal Server Error");
     }
@@ -505,65 +510,65 @@ const MemberRegister = {
 
       // Get user record by ID from user table
       const [userRows] = await connection.execute(
-          "SELECT * FROM user WHERE id = ?",
-          [id]
+        "SELECT * FROM user WHERE id = ?",
+        [id]
       );
 
       let user;
       if (userRows.length > 0) {
-          user = userRows[0];
+        user = userRows[0];
       } else {
-          // If user not found in user table, check member_register table
-          const [memberUserRows] = await connection.execute(
-              "SELECT * FROM member_register WHERE id = ?",
-              [id]
-          );
+        // If user not found in user table, check member_register table
+        const [memberUserRows] = await connection.execute(
+          "SELECT * FROM member_register WHERE id = ?",
+          [id]
+        );
 
-          if (memberUserRows.length === 0) {
-              return res.status(404).json({
-                  status: 404,
-                  message: "User not found",
-              });
-          }
+        if (memberUserRows.length === 0) {
+          return res.status(404).json({
+            status: 404,
+            message: "User not found",
+          });
+        }
 
-          user = memberUserRows[0];
+        user = memberUserRows[0];
       }
 
       // Recursively get all members for a given user_id
       const getMembersRecursive = async (userId) => {
-          const [members] = await connection.execute(
-              "SELECT * FROM member_register WHERE user_id = ?",
-              [userId]
-          );
-          for (const member of members) {
-              member.subMembers = await getMembersRecursive(member.id);
-          }
-          return members;
+        const [members] = await connection.execute(
+          "SELECT * FROM member_register WHERE user_id = ?",
+          [userId]
+        );
+        for (const member of members) {
+          member.subMembers = await getMembersRecursive(member.id);
+        }
+        return members;
       };
 
       const memberRegister = await getMembersRecursive(user.id);
 
       return res.status(200).json({
-          status: 200,
-          message: "User details retrieved successfully",
-          data: {
-              user,
-              memberRegister
-          },
+        status: 200,
+        message: "User details retrieved successfully",
+        data: {
+          user,
+          memberRegister,
+        },
       });
-  } catch (e) {
-        console.error(e);
-        return res.status(500).send(e);
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
     } finally {
-        if (connection && connection.end) {
-            connection.end();
-        }
+      if (connection && connection.end) {
+        connection.end();
+      }
     }
-},
-async getAlltree(req, res, next) {
-  let connection;
+  },
+  async getAlltree(req, res, next) {
+    let connection;
 
-  try {
+    try {
       connection = await mysql.createConnection(config);
 
       // Get all users from the user table ordered by creation time
@@ -572,43 +577,42 @@ async getAlltree(req, res, next) {
       );
 
       if (userRows.length === 0) {
-          return res.status(404).json({
-              status: 404,
-              message: "No users found",
-          });
+        return res.status(404).json({
+          status: 404,
+          message: "No users found",
+        });
       }
 
       // Recursively get all members for a given user_id
       const getMembersRecursive = async (userId) => {
-          const [members] = await connection.execute(
-              "SELECT * FROM member_register WHERE user_id = ?",
-              [userId]
-          );
-          for (const member of members) {
-              member.subMembers = await getMembersRecursive(member.id);
-          }
-          return members;
+        const [members] = await connection.execute(
+          "SELECT * FROM member_register WHERE user_id = ?",
+          [userId]
+        );
+        for (const member of members) {
+          member.subMembers = await getMembersRecursive(member.id);
+        }
+        return members;
       };
 
       // Attach members to each user
       for (const user of userRows) {
-          user.memberRegister = await getMembersRecursive(user.id);
+        user.memberRegister = await getMembersRecursive(user.id);
       }
 
       return res.status(200).json({
-          status: 200,
-          message: "Users and members retrieved successfully",
-          data: userRows,
+        status: 200,
+        message: "Users and members retrieved successfully",
+        data: userRows,
       });
-  } catch (e) {
+    } catch (e) {
       console.error(e);
       return res.status(500).send(e);
-  } finally {
+    } finally {
       if (connection && connection.end) {
-          connection.end();
+        connection.end();
       }
-  }
-}
-
+    }
+  },
 };
 export default MemberRegister;
