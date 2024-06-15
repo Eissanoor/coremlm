@@ -54,4 +54,5 @@ router.get("/getLogo",LogoCon.getLogo)
 
 //tree
 router.get("/getUserbyId",Member.getUserbyId)
+router.get("/getAlltree",Member.getAlltree)
 export default router;

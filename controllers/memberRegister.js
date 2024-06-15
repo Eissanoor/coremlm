@@ -559,6 +559,56 @@ const MemberRegister = {
             connection.end();
         }
     }
+},
+async getAlltree(req, res, next) {
+  let connection;
+
+  try {
+      connection = await mysql.createConnection(config);
+
+      // Get all users from the user table ordered by creation time
+      const [userRows] = await connection.execute(
+        "SELECT * FROM user ORDER BY id ASC"
+      );
+
+      if (userRows.length === 0) {
+          return res.status(404).json({
+              status: 404,
+              message: "No users found",
+          });
+      }
+
+      // Recursively get all members for a given user_id
+      const getMembersRecursive = async (userId) => {
+          const [members] = await connection.execute(
+              "SELECT * FROM member_register WHERE user_id = ?",
+              [userId]
+          );
+          for (const member of members) {
+              member.subMembers = await getMembersRecursive(member.id);
+          }
+          return members;
+      };
+
+      // Attach members to each user
+      for (const user of userRows) {
+          user.memberRegister = await getMembersRecursive(user.id);
+      }
+
+      return res.status(200).json({
+          status: 200,
+          message: "Users and members retrieved successfully",
+          data: userRows,
+      });
+  } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+  } finally {
+      if (connection && connection.end) {
+          connection.end();
+      }
+  }
 }
+
 };
 export default MemberRegister;
