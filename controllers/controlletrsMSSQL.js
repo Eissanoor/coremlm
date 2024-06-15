@@ -1819,9 +1819,10 @@ WHERE profile.user_id = ?
       const updatedTwitter = req.body.twitter || user.twitter;
       const updatedFacebook = req.body.facebook || user.facebook;
       const updatedisVarified = req.body.isVarified || user.isVarified;
+      const updatedpassword = req.body.password || user.password;
       const userUpdate = `
       UPDATE user
-      SET firstname = ?, lastname = ?, gender = ?, twitter = ?, facebook = ?, isVarified=?, updated_at = CURRENT_TIMESTAMP
+      SET firstname = ?, lastname = ?, gender = ?, twitter = ?, facebook = ?, isVarified=?, password=?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `;
 
@@ -1832,6 +1833,7 @@ WHERE profile.user_id = ?
         updatedTwitter,
         updatedFacebook,
         updatedisVarified,
+        updatedpassword,
         userId,
       ];
 
@@ -1856,6 +1858,7 @@ WHERE profile.user_id = ?
           twitter: updatedTwitter,
           facebook: updatedFacebook,
           isVarified: updatedisVarified,
+          password:updatedpassword,
           updated_at: new Date(), // assuming the database updates the timestamp automatically
         },
       });
