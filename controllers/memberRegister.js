@@ -348,7 +348,7 @@ const MemberRegister = {
       });
   
       let mailOptions;
-  console.log(updatedMember);
+
       if (updatedMember.isVarified == 1) {
         console.log("user active show");
         mailOptions = {
