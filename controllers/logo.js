@@ -201,5 +201,63 @@ const LogoCon = {
       }
     }
   },
+  async deletelogobyid (req, res, next){
+    let connection;
+  
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+  
+      const { id } = req.params;
+  
+      // Retrieve the logo URL from the database
+      const [rows] = await connection.execute('SELECT logo FROM logo WHERE id = ?', [id]);
+      if (rows.length === 0) {
+        return res.status(404).json({
+          status: 404,
+          message: 'Logo not found',
+        });
+      }
+  
+      const logoUrl = rows[0].logo;
+  
+      // Delete the logo record from the database
+      const [result] = await connection.execute('DELETE FROM logo WHERE id = ?', [id]);
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          status: 404,
+          message: 'Logo not found',
+        });
+      }
+  
+      // Delete the file from Supabase storage
+      if (logoUrl) {
+        // Extract the path from the URL
+        const path = logoUrl.split(`${supabaseUrl}/storage/v1/object/public/core/`)[1];
+  
+        const { error } = await supabase.storage
+          .from('core') // Replace with your actual bucket name
+          .remove([path]);
+  
+        if (error) {
+          console.error(`Supabase file deletion error: ${error.message}`);
+          // You may want to handle this error more gracefully in a real-world scenario
+          // Here we're just logging it and proceeding with the response
+        }
+      }
+  
+      return res.status(200).json({
+        status: 200,
+        message: 'Logo has been deleted successfully',
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  }
 };
 export default LogoCon;
