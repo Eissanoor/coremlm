@@ -49,8 +49,10 @@ router.put("/updateMember/:id",Member.updateMember)
 router.delete("/deleteMember/:id",Member.deleteMember)
 
 //logo
-router.put("/addnewLogo/:id",upload.single("logo"),LogoCon.addnewLogo )
+router.put("/updateLogo/:id",upload.single("logo"),LogoCon.updateLogo )
 router.get("/getLogo",LogoCon.getLogo)
+router.get("/getlogobyid/:id",LogoCon.getlogobyid)
+router.post("/insertnewlogo",upload.single("logo"),LogoCon.insertnewlogo)
 
 //tree
 router.get("/getUserbyId",Member.getUserbyId)

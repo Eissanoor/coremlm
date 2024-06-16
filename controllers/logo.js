@@ -28,7 +28,7 @@ const config = {
   port: port,
 };
 const LogoCon = {
-  async addnewLogo(req, res, next) {
+  async updateLogo(req, res, next) {
     let connection;
 
     try {
@@ -99,27 +99,98 @@ const LogoCon = {
     try {
       connection = await mysql.createConnection(config);
       await connection.connect();
-
-      const { id } = req.query; // Assuming you pass the logo ID as a URL parameter
-
-      const [rows] = await connection.execute(
-        "SELECT * FROM logo WHERE id = ?",
-        [id]
-      );
-
+  
+      const [rows] = await connection.execute('SELECT * FROM logo');
+  
+      return res.status(200).json({
+        status: 200,
+        data: rows,
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
+  async getlogobyid(req, res, next){
+    let connection;
+  
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+  
+      const { id } = req.params;
+      const [rows] = await connection.execute('SELECT * FROM logo WHERE id = ?', [id]);
+  
       if (rows.length === 0) {
         return res.status(404).json({
           status: 404,
-          message: "Logo not found",
+          message: 'Logo not found',
         });
       }
-
-      const logo = rows[0];
-
+  
       return res.status(200).json({
         status: 200,
-        message: "Logo details retrieved successfully",
-        data: logo,
+        data: rows[0],
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e);
+    } finally {
+      if (connection && connection.end) {
+        connection.end();
+      }
+    }
+  },
+  async insertnewlogo (req, res, next)  {
+    let connection;
+  
+    try {
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+      let fileUrl = null;
+  
+      if (req.file) {
+        const file = req.file;
+        const { path, originalname, mimetype } = file;
+        const timestampedFilename = `${originalname}_${Date.now()}`;
+        const fileStream = fs.createReadStream(path);
+  
+        fileStream.on('error', (error) => {
+          throw new Error(`File read error: ${error.message}`);
+        });
+  
+        const { data, error } = await supabase.storage
+          .from("core") // Replace with your actual bucket name
+          .upload(`uploads/${timestampedFilename}`, fileStream, {
+            contentType: mimetype,
+            cacheControl: "3600",
+            upsert: false,
+            duplex: "half",
+          });
+  
+        if (error) {
+          throw new Error(`Supabase upload error: ${error.message}`);
+        }
+  
+        fileUrl = `${supabaseUrl}/storage/v1/object/public/core/uploads/${timestampedFilename}`;
+      }
+  
+      const [result] = await connection.execute(
+        'INSERT INTO logo (logo) VALUES (?)',
+        [fileUrl]
+      );
+  
+      return res.status(201).json({
+        status: 201,
+        message: 'Logo has been created successfully',
+        data: {
+          id: result.insertId,
+          logo: fileUrl,
+        },
       });
     } catch (e) {
       console.error(e);
