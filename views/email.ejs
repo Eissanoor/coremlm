@@ -50,8 +50,10 @@
         <h1 style="color: red;" >Coremlm</h1>
         <h1>Registration Successful!</h1>
         <p>Welcome, <%= username %>! Your account has been successfully created.</p>
+
         <p>Your account is pending approval.</p>
         <h2>Your Cart</h2>
+        
         <table>
             <thead>
                 <tr>
@@ -74,6 +76,15 @@
                 <% }); %>
             </tbody>
         </table>
+        <button onclick="downloadPDF()">Download PDF</button>
+        <script>
+            function downloadPDF() {
+                const password = prompt("Please enter your password:");
+                if (password) {
+                    window.location.href = "/download-pdf?email=<%= email %>&password=";
+                }
+            }
+        </script>
     </div>
 </body>
 </html>

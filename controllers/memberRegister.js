@@ -5,6 +5,7 @@ import nodemailer from "nodemailer";
 import fs from "fs";
 import { createClient } from "@supabase/supabase-js";
 import ejs from "ejs";
+import pdf from 'pdfkit';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import * as dotenv from "dotenv";
@@ -182,6 +183,8 @@ const MemberRegister = {
       const emailTemplatePath = path.join(__dirname, "../views/email.ejs");
       const emailHtml = await ejs.renderFile(emailTemplatePath, {
         username: req.body.user_name,
+        email:memberData[0].email,
+        password:memberData[0].password,
         member: memberData[0],
         cartData: productData,
       });
@@ -614,5 +617,53 @@ const MemberRegister = {
       }
     }
   },
+  async download_pdf(req, res,next)  {
+   
+    const { email, password } = req.query;
+    async function getUserByEmail(email) {
+      const connection = await mysql.createConnection(config);
+      const [rows] = await connection.execute('SELECT * FROM member_register WHERE email = ?', [email]);
+      await connection.end();
+      return rows.length > 0 ? rows[0] : null;
+    }
+    try {
+      const user = await getUserByEmail(email);
+      if (user && user.password === password) {
+        // Generate PDF
+        const doc = new pdf();
+        let filename = 'cart.pdf';
+        filename = encodeURIComponent(filename);
+        res.setHeader('Content-disposition', 'attachment; filename="' + filename + '"');
+        res.setHeader('Content-type', 'application/pdf');
+  
+        doc.text('Your Cart Details:', 50, 50);
+        const cartData = await getCartData(user.id); // Implement this function to get cart data by user ID
+        cartData.forEach((product, index) => {
+          doc.text(`Product ${index + 1}: ${product.product_name}`, 50, 100 + index * 50);
+          doc.text(`Price: ${product.product_price}`, 50, 120 + index * 50);
+          doc.text(`Description: ${product.description}`, 50, 140 + index * 50);
+        });
+        async function getCartData(memberId) {
+          const connection = await mysql.createConnection(config);
+          const [cartProducts] = await connection.execute('SELECT * FROM add_cart_product WHERE member_id = ?', [memberId]);
+          const productDetailsPromises = cartProducts.map(async (cartProduct) => {
+            const [productDetails] = await connection.execute('SELECT * FROM product WHERE id = ?', [cartProduct.product_id]);
+            return productDetails[0];
+          });
+          const productsWithDetails = await Promise.all(productDetailsPromises);
+          await connection.end();
+          return productsWithDetails;
+        }
+        doc.pipe(res);
+        doc.end();
+      } else {
+        res.status(401).send('Invalid password');
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).send('Internal Server Error');
+    }
+  }
+  
 };
 export default MemberRegister;
