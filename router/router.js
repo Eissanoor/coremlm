@@ -59,4 +59,9 @@ router.delete("/deletelogobyid/:id",LogoCon.deletelogobyid)
 router.get("/getUserbyId",Member.getUserbyId)
 router.get("/getAlltree",Member.getAlltree)
 router.get("/download-pdf",Member.download_pdf)
+
+router.get("/getemail", (req,res) => {
+
+    res.render("email")
+})
 export default router;

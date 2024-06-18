@@ -45,11 +45,10 @@
 </head>
 <body>
     <div class="container">
-        
-        <img src="" alt="<%= username %>" style="width: 200px;">
+      
         <h1 style="color: red;" >Coremlm</h1>
         <h1>Registration Successful!</h1>
-        <p>Welcome, <%= username %>! Your account has been successfully created.</p>
+        
 
         <p>Your account is pending approval.</p>
         <h2>Your Cart</h2>
@@ -64,24 +63,14 @@
                     <th>Description</th>
                 </tr>
             </thead>
-            <tbody>
-                <% cartData.forEach(function(product) { %>
-                    <tr>
-                        <td><%= product.product_name %></td>
-                        <td><img src="<%= product.product_image %>" alt="<%= product.product_name %>" style="width: 100px;"></td>
-                        <td><%= product.product_pv %></td>
-                        <td><%= product.product_price %></td>
-                        <td><%= product.description %></td>
-                    </tr>
-                <% }); %>
-            </tbody>
+          
         </table>
         <button onclick="downloadPDF()">Download PDF</button>
         <script>
             function downloadPDF() {
                 const password = prompt("Please enter your password:");
                 if (password) {
-                    window.location.href = "/download-pdf?email=<%= email %>&password=";
+                    window.location.href = "/download-pdf";
                 }
             }
         </script>
