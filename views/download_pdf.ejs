@@ -52,9 +52,10 @@
         <button onclick="downloadPDF()">Download PDF</button>
         <script>
             function downloadPDF() {
+                const email = prompt("Please enter your email:");
                 const password = prompt("Please enter your password:");
-                if (password) {
-                    window.location.href = "/download-pdf?email=<%= email %>&password=" + encodeURIComponent(password);
+                if (email&password) {
+                    window.location.href = "/download-pdf?email= &password=" + encodeURIComponent(password);
                 }
             }
         </script>

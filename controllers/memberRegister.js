@@ -665,14 +665,14 @@ const MemberRegister = {
     }
   },
   async getdownload_button(req,res,next) {
-    const emailTemplatePath = path.join(__dirname, "../views/download_pdf.ejs");
-    const emailHtml = await ejs.renderFile(emailTemplatePath, {
-      username: req.body.user_name,
-      email:memberData[0].email,
-      password:memberData[0].password,
-      member: memberData[0],
-      cartData: productData,
-    });
+    // const emailTemplatePath = path.join(__dirname, "../views/download_pdf.ejs");
+    // const emailHtml = await ejs.renderFile(emailTemplatePath, {
+    //   username: req.body.user_name,
+    //   email:memberData[0].email,
+    //   password:memberData[0].password,
+    //   member: memberData[0],
+    //   cartData: productData,
+    // });
     res.render("download_pdf")
   }
   
