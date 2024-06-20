@@ -625,43 +625,46 @@ const MemberRegister = {
       const [rows] = await connection.execute('SELECT * FROM member_register WHERE email = ?', [email]);
       await connection.end();
       return rows.length > 0 ? rows[0] : null;
-    }
-    try {
+  }
+
+  async function getCartData(memberId) {
+      const connection = await mysql.createConnection(config);
+      const [cartProducts] = await connection.execute('SELECT * FROM add_cart_product WHERE member_id = ?', [memberId]);
+      const productDetailsPromises = cartProducts.map(async (cartProduct) => {
+          const [productDetails] = await connection.execute('SELECT * FROM product WHERE id = ?', [cartProduct.product_id]);
+          return productDetails[0];
+      });
+      const productsWithDetails = await Promise.all(productDetailsPromises);
+      await connection.end();
+      return productsWithDetails;
+  }
+
+  try {
       const user = await getUserByEmail(email);
       if (user && user.password === password) {
-        // Generate PDF
-        const doc = new pdf();
-        let filename = 'cart.pdf';
-        filename = encodeURIComponent(filename);
-        res.setHeader('Content-disposition', 'attachment; filename="' + filename + '"');
-        res.setHeader('Content-type', 'application/pdf');
-  
-        doc.text('Your Cart Details:', 50, 50);
-        const cartData = await getCartData(user.id); // Implement this function to get cart data by user ID
-        cartData.forEach((product, index) => {
-          doc.text(`Product ${index + 1}: ${product.product_name}`, 50, 100 + index * 50);
-          doc.text(`Price: ${product.product_price}`, 50, 120 + index * 50);
-          doc.text(`Description: ${product.description}`, 50, 140 + index * 50);
-        });
-        async function getCartData(memberId) {
-          const connection = await mysql.createConnection(config);
-          const [cartProducts] = await connection.execute('SELECT * FROM add_cart_product WHERE member_id = ?', [memberId]);
-          const productDetailsPromises = cartProducts.map(async (cartProduct) => {
-            const [productDetails] = await connection.execute('SELECT * FROM product WHERE id = ?', [cartProduct.product_id]);
-            return productDetails[0];
+          // Generate PDF
+          const doc = new pdf();
+          let filename = 'cart.pdf';
+          filename = encodeURIComponent(filename);
+          res.setHeader('Content-disposition', 'attachment; filename="' + filename + '"');
+          res.setHeader('Content-type', 'application/pdf');
+
+          doc.text('Your Cart Details:', 50, 50);
+          const cartData = await getCartData(user.id);
+          cartData.forEach((product, index) => {
+              doc.text(`Product ${index + 1}: ${product.product_name}`, 50, 100 + index * 50);
+              doc.text(`Price: ${product.product_price}`, 50, 120 + index * 50);
+              doc.text(`Description: ${product.description}`, 50, 140 + index * 50);
           });
-          const productsWithDetails = await Promise.all(productDetailsPromises);
-          await connection.end();
-          return productsWithDetails;
-        }
-        doc.pipe(res);
-        doc.end();
+
+          doc.pipe(res);
+          doc.end();
       } else {
-        res.status(401).send('Invalid password');
+          res.status(401).send('Invalid email or password');
       }
-    } catch (error) {
+  } catch (error) {
       console.error(error);
-      res.status(500).send('Internal Server Error');
+      res.status(500).json(error.message);
     }
   },
   async getdownload_button(req,res,next) {

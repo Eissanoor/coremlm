@@ -45,17 +45,16 @@
 </head>
 <body>
     <div class="container">
-        
-        
-        
-        
+        <h1>Registration Success</h1>
         <button onclick="downloadPDF()">Download PDF</button>
         <script>
             function downloadPDF() {
                 const email = prompt("Please enter your email:");
+                
                 const password = prompt("Please enter your password:");
-                if (email&password) {
-                    window.location.href = "/download-pdf?email= &password=" + encodeURIComponent(password);
+                console.log(email, password);
+                if (email && password) {
+                    window.location.href = `/download-pdf?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
                 }
             }
         </script>

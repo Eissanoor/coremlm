@@ -58,7 +58,7 @@ router.delete("/deletelogobyid/:id",LogoCon.deletelogobyid)
 //tree
 router.get("/getUserbyId",Member.getUserbyId)
 router.get("/getAlltree",Member.getAlltree)
-router.get("/download-pdf",Member.download_pdf)
+
 router.get("/getdownload_button",Member.getdownload_button)
 
 export default router;
