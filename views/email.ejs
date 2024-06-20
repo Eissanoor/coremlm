@@ -76,15 +76,7 @@
                 <% }); %>
             </tbody>
         </table>
-        <button onclick="downloadPDF()">Download PDF</button>
-        <script>
-            function downloadPDF() {
-                const password = prompt("Please enter your password:");
-                if (password) {
-                    window.location.href = "/download-pdf?email=<%= email %>&password=" + encodeURIComponent(password);
-                }
-            }
-        </script>
+        <a href="https://coremlm.vercel.app/api/getemail"></a>
     </div>
 </body>
 </html>

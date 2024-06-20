@@ -100,11 +100,13 @@ const LogoCon = {
       connection = await mysql.createConnection(config);
       await connection.connect();
   
-      const [rows] = await connection.execute('SELECT * FROM logo');
+      // Modified query to fetch only the latest logo based on ID
+      const [rows] = await connection.execute('SELECT * FROM logo ORDER BY id DESC LIMIT 1');
   
+      // Assuming rows will always contain at least one object due to LIMIT 1
       return res.status(200).json({
         status: 200,
-        data: rows,
+        data: rows[0], // Fetching the first (and only) object in rows
       });
     } catch (e) {
       console.error(e);
