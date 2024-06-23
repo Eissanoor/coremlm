@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cart Details</title>
+</head>
+<body>
+    <h1>Your Cart Details</h1>
+    <p>Username: <%= username %></p>
+    <p>Email: <%= email %></p>
+    <% cartData.forEach((product, index) => { %>
+        <h2>Product <%= index + 1 %>:</h2>
+        <p>Product Name: <%= product.product_name %></p>
+        <p>Price: <%= product.product_price %></p>
+        <p>Description: <%= product.description %></p>
+    <% }); %>
+</body>
+</html>

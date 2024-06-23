@@ -5,7 +5,7 @@ import nodemailer from "nodemailer";
 import fs from "fs";
 import { createClient } from "@supabase/supabase-js";
 import ejs from "ejs";
-import pdf from 'pdfkit';
+import pdf from 'html-pdf';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import * as dotenv from "dotenv";
@@ -640,29 +640,37 @@ const MemberRegister = {
   }
 
   try {
-      const user = await getUserByEmail(email);
-      if (user && user.password === password) {
-          // Generate PDF
-          const doc = new pdf();
-          let filename = 'cart.pdf';
-          filename = encodeURIComponent(filename);
-          res.setHeader('Content-disposition', 'attachment; filename="' + filename + '"');
-          res.setHeader('Content-type', 'application/pdf');
+    const user = await getUserByEmail(email);
+    if (user && user.password === password) {
+        const cartData = await getCartData(user.id);
+        const emailTemplatePath = path.join(__dirname, "../views/PDF.ejs");
 
-          doc.text('Your Cart Details:', 50, 50);
-          const cartData = await getCartData(user.id);
-          cartData.forEach((product, index) => {
-              doc.text(`Product ${index + 1}: ${product.product_name}`, 50, 100 + index * 50);
-              doc.text(`Price: ${product.product_price}`, 50, 120 + index * 50);
-              doc.text(`Description: ${product.description}`, 50, 140 + index * 50);
-          });
+        // Render the EJS template to HTML
+        const emailHtml = await ejs.renderFile(emailTemplatePath, {
+            username: user.user_name,
+            email: user.email,
+            member: user,
+            cartData: cartData
+        });
 
-          doc.pipe(res);
-          doc.end();
-      } else {
-          res.status(401).send('Invalid email or password');
-      }
-  } catch (error) {
+        // Generate PDF from the rendered HTML
+        pdf.create(emailHtml).toStream((err, stream) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json(err.message);
+            }
+
+            let filename = 'cart.pdf';
+            filename = encodeURIComponent(filename);
+            res.setHeader('Content-disposition', 'attachment; filename="' + filename + '"');
+            res.setHeader('Content-type', 'application/pdf');
+
+            stream.pipe(res);
+        });
+    } else {
+        res.status(401).send('Invalid email or password');
+    }
+} catch (error) {
       console.error(error);
       res.status(500).json(error.message);
     }
