@@ -650,11 +650,21 @@ const MemberRegister = {
             username: user.user_name,
             email: user.email,
             member: user,
-            cartData: cartData
+            cartData: cartData,
+            Date: user.created_at
         });
 
-        // Generate PDF from the rendered HTML
-        pdf.create(emailHtml).toStream((err, stream) => {
+        // PDF options with landscape orientation
+        const pdfOptions = {
+            format: 'A4',
+            orientation: 'landscape',
+            border: '0', // No border to use full page width and height
+            width: '297mm', // Full width of A4 landscape
+            height: '210mm', // Full height of A4 landscape
+        };
+
+        // Generate PDF from the rendered HTML with specified options
+        pdf.create(emailHtml, pdfOptions).toStream((err, stream) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json(err.message);
@@ -685,6 +695,9 @@ const MemberRegister = {
     //   cartData: productData,
     // });
     res.render("download_pdf")
+  },
+  async getinvoice(req,res,next){
+res.render("PDF",{username:"EISSANOOR",Date:"12/23/23", email:"EISSANOOR@gmaill.com", cartData:["A"],member:"EISSANOOR"})
   }
   
 };

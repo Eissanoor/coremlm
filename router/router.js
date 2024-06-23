@@ -60,5 +60,5 @@ router.get("/getUserbyId",Member.getUserbyId)
 router.get("/getAlltree",Member.getAlltree)
 
 router.get("/getdownload_button",Member.getdownload_button)
-
+router.get("/getinvoice",Member.getinvoice)
 export default router;

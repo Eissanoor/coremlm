@@ -2,16 +2,81 @@
 <html>
 <head>
     <title>Cart Details</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .invoice-box {
+            max-width: 1400px; /* Further increased the max-width */
+            margin: auto;
+            padding: 30px;
+            border: 1px solid #eee;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+            font-size: 24px; /* Increased the font size */
+            line-height: 32px; /* Adjusted line-height accordingly */
+            color: #555;
+        }
+        .invoice-box h1 {
+            font-size: 3em; /* Retained the increased font size */
+            margin-bottom: 20px;
+        }
+        .invoice-box h2 {
+            font-size: 1.75em; /* Retained the increased font size */
+            margin-top: 0;
+        }
+        .invoice-box p {
+            margin: 5px 0;
+        }
+        .invoice-box table {
+            width: 100%;
+            line-height: inherit;
+            text-align: left;
+            border-collapse: collapse;
+            font-size: 1.8em; /* Further increased font size for table content */
+        }
+        .invoice-box table td {
+            padding: 18px; /* Increased padding for better readability */
+            vertical-align: top;
+        }
+        .invoice-box table tr.heading td {
+            background: #eee;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+        }
+        .invoice-box table tr.details td {
+            padding-bottom: 20px;
+        }
+        .invoice-box table tr.item td {
+            border-bottom: 1px solid #eee;
+        }
+        .invoice-box table tr.item.last td {
+            border-bottom: none;
+        }
+    </style>
 </head>
 <body>
-    <h1>Your Cart Details</h1>
-    <p>Username: <%= username %></p>
-    <p>Email: <%= email %></p>
-    <% cartData.forEach((product, index) => { %>
-        <h2>Product <%= index + 1 %>:</h2>
-        <p>Product Name: <%= product.product_name %></p>
-        <p>Price: <%= product.product_price %></p>
-        <p>Description: <%= product.description %></p>
-    <% }); %>
+    <div class="invoice-box">
+        <h1>Coremlm</h1>
+        <h1>Invoice</h1>
+        <p>Username: <%= username %></p>
+        <p>Email: <%= email %></p>
+        <p>Date: <%= Date %></p>
+        <table>
+            <% cartData.forEach((product, index) => { %>
+            <tr class="heading">
+                <td>Product <%= index + 1 %></td>
+                <td></td>
+            </tr>
+            <tr class="item">
+                <td>Product Name: <%= product.product_name %></td>
+                <td>Price: $<%= product.product_price %></td>
+            </tr>
+            <tr class="item">
+                <td colspan="2">Description: <%= product.description %></td>
+            </tr>
+            <% }); %>
+        </table>
+    </div>
 </body>
 </html>
