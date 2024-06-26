@@ -4,7 +4,7 @@ import upload from "../config/multerConfig.js"
 import FATSDB from "../controllers/controlletrsMSSQL.js";
 import Member from "../controllers/memberRegister.js"
 import LogoCon from "../controllers/logo.js";
-import Comission from "../controllers/Commission.js";
+import Comission from "../controllers/commission.js";
 
 
 
