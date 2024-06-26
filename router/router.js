@@ -11,10 +11,15 @@ import Comission from "../controllers/commission.js";
 
 //commission
 router.get('/get_commission', Comission.get_comission )
+router.put("/update_comission",Comission.update_comission)
 router.get("/get_compensation",Comission.get_compensation)
+router.put("/update_compensation",Comission.update_compensation)
 router.get("/get_level_commision", Comission.get_level_commision)
+router.put("/update_level_commision",Comission.update_level_commision)
 router.get("/get_commission_base_on_geonology",Comission.get_commission_base_on_geonology)
+router.put("/update_commission_base_on_geonology",Comission.update_commission_base_on_geonology)
 router.get("/get_referel_commission",Comission.get_referel_commission)
+router.put("/update_referel_commission",Comission.update_referel_commission)
 //----------------------------------------------------------------
 router.get("/allgetprofile", FATSDB.allgetprofile)
 router.get("/user_profile", FATSDB.user_profile)
