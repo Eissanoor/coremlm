@@ -4,6 +4,18 @@ import upload from "../config/multerConfig.js"
 import FATSDB from "../controllers/controlletrsMSSQL.js";
 import Member from "../controllers/memberRegister.js"
 import LogoCon from "../controllers/logo.js";
+import Comission from "../controllers/Commission.js";
+
+
+
+
+//commission
+router.get('/get_commission', Comission.get_comission )
+router.get("/get_compensation",Comission.get_compensation)
+router.get("/get_level_commision", Comission.get_level_commision)
+router.get("/get_commission_base_on_geonology",Comission.get_commission_base_on_geonology)
+router.get("/get_referel_commission",Comission.get_referel_commission)
+//----------------------------------------------------------------
 router.get("/allgetprofile", FATSDB.allgetprofile)
 router.get("/user_profile", FATSDB.user_profile)
 router.post("/addnewuser", FATSDB.addnewuser)
