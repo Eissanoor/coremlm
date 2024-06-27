@@ -20,6 +20,8 @@ router.get("/get_commission_base_on_geonology",Comission.get_commission_base_on_
 router.put("/update_commission_base_on_geonology",Comission.update_commission_base_on_geonology)
 router.get("/get_referel_commission",Comission.get_referel_commission)
 router.put("/update_referel_commission",Comission.update_referel_commission)
+router.get("/getcommissionbyId", Comission.getcommissionbyId)
+router.get("/gettotalearnbyId",Comission.gettotalearnbyId)
 //----------------------------------------------------------------
 router.get("/allgetprofile", FATSDB.allgetprofile)
 router.get("/user_profile", FATSDB.user_profile)

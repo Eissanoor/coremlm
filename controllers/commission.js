@@ -38,7 +38,7 @@ const Commission = {
           return res.status(200).send({ data: rows[0] });
         } catch (e) {
           console.error(e);
-          return res.status(500).send("Internal Server Error");
+          return res.status(500).json(e.message);
         }
       },
       async update_comission(req, res, next) {
@@ -56,7 +56,7 @@ const Commission = {
           return res.status(200).json({ data: "comission updated successfully"});
         } catch (e) {
           console.error(e);
-          return res.status(500).json("Internal Server Error");
+          return res.status(500).json(e.message);
         }
 
       },
@@ -69,7 +69,7 @@ const Commission = {
           return res.status(200).send({ data: rows[0] });
         } catch (e) {
           console.error(e);
-          return res.status(500).send("Internal Server Error");
+          return res.status(500).json(e.message);
         }
       },
       async update_compensation(req, res, next) {
@@ -87,7 +87,7 @@ const Commission = {
           return res.status(200).json({ data: "compensation updated successfully"});
         } catch (e) {
           console.error(e);
-          return res.status(500).json("Internal Server Error");
+          return res.status(500).json(e.message);
         }
 
       },
@@ -100,7 +100,7 @@ const Commission = {
           return res.status(200).send({ data: rows[0] });
         } catch (e) {
           console.error(e);
-          return res.status(500).send("Internal Server Error");
+          return res.status(500).json(e.message);
         }
       },
       async update_level_commision(req, res, next) {
@@ -118,7 +118,7 @@ const Commission = {
           return res.status(200).json({ data: "level_commision updated successfully"});
         } catch (e) {
           console.error(e);
-          return res.status(500).json("Internal Server Error");
+          return res.status(500).json(e.message);
         }
 
       },
@@ -131,7 +131,7 @@ const Commission = {
           return res.status(200).send({ data: rows[0] });
         } catch (e) {
           console.error(e);
-          return res.status(500).send("Internal Server Error");
+          return res.status(500).json(e.message);
         }
       },
       async update_commission_base_on_geonology(req, res, next) {
@@ -149,7 +149,7 @@ const Commission = {
           return res.status(200).json({ data: "commission_base_on_geonology updated successfully"});
         } catch (e) {
           console.error(e);
-          return res.status(500).json("Internal Server Error");
+          return res.status(500).json(e.message);
         }
 
       },
@@ -162,7 +162,7 @@ const Commission = {
           return res.status(200).send({ data: rows[0] });
         } catch (e) {
           console.error(e);
-          return res.status(500).send("Internal Server Error");
+          return res.status(500).json(e.message);
         }
       },
       async update_referel_commission(req, res, next) {
@@ -180,10 +180,204 @@ const Commission = {
           return res.status(200).json({ data: "referel_commission updated successfully"});
         } catch (e) {
           console.error(e);
-          return res.status(500).json("Internal Server Error");
+          return res.status(500).json(e.message);
         }
 
       },
+      async gettotalearnbyId(req, res, next) {
+        let connection;
+    
+        try {
+          connection = await mysql.createConnection(config);
+          const { id } = req.query; // Assuming you pass the user ID as a URL parameter
+  
+          // Get user record by ID from user table
+          const [userRows] = await connection.execute(
+              "SELECT id FROM user WHERE id = ?",
+              [id]
+          );
+  
+          let user;
+          if (userRows.length > 0) {
+              user = userRows[0];
+          } else {
+              // If user not found in user table, check member_register table
+              const [memberUserRows] = await connection.execute(
+                  "SELECT id FROM member_register WHERE id = ?",
+                  [id]
+              );
+  
+              if (memberUserRows.length === 0) {
+                  return res.status(404).json({
+                      status: 404,
+                      message: "User not found",
+                  });
+              }
+  
+              user = memberUserRows[0];
+          }
+  
+          // Recursively get all members' ids and their products for a given user_id
+          const getMembersRecursive = async (userId) => {
+              const [members] = await connection.execute(
+                  "SELECT id FROM member_register WHERE user_id = ?",
+                  [userId]
+              );
+  
+              let totalProductPrice = 0;
+              const memberDetails = [];
+  
+              for (const member of members) {
+                  // Fetch products for each member and join with product table to get product details
+                  const [productRows] = await connection.execute(
+                      `SELECT p.*, p.product_price FROM add_cart_product acp
+                      JOIN product p ON acp.product_id = p.id
+                      WHERE acp.member_id = ?`,
+                      [member.id]
+                  );
+  
+                  const memberProductPrice = productRows.reduce((sum, product) => sum + product.product_price, 0);
+                  totalProductPrice += memberProductPrice;
+  
+                  const subMembers = await getMembersRecursive(member.id);
+                  totalProductPrice += subMembers.totalProductPrice;
+  
+                  memberDetails.push({
+                      id: member.id,
+                      products: productRows,
+                      subMembers: subMembers.memberDetails,
+                  });
+              }
+  
+              return { memberDetails, totalProductPrice };
+          };
+  
+          const { memberDetails, totalProductPrice } = await getMembersRecursive(user.id);
+  
+          return res.status(200).json({
+              status: 200,
+              message: "User details and products retrieved successfully",
+              data: {
+                  id: user.id,
+                  memberRegister: memberDetails,
+                  totalProductPrice: totalProductPrice,
+              },
+          });
+      }catch (e) {
+            console.error(e);
+            return res.status(500).json(e.message);
+        } finally {
+            if (connection && connection.end) {
+                connection.end();
+            }
+        }
+    },
+      async getcommissionbyId(req, res, next) {
+        let connection;
+    
+        try {
+          connection = await mysql.createConnection(config);
+          const { id } = req.query; // Assuming you pass the user ID as a URL parameter
+  
+          // Get user record by ID from user table
+          const [userRows] = await connection.execute(
+              "SELECT id FROM user WHERE id = ?",
+              [id]
+          );
+  
+          let user;
+          if (userRows.length > 0) {
+              user = userRows[0];
+          } else {
+              // If user not found in user table, check member_register table
+              const [memberUserRows] = await connection.execute(
+                  "SELECT id FROM member_register WHERE id = ?",
+                  [id]
+              );
+  
+              if (memberUserRows.length === 0) {
+                  return res.status(404).json({
+                      status: 404,
+                      message: "User not found",
+                  });
+              }
+  
+              user = memberUserRows[0];
+          }
+  
+          // Recursively get all members' ids and their products for a given user_id
+          const getMembersRecursive = async (userId) => {
+              const [members] = await connection.execute(
+                  "SELECT id FROM member_register WHERE user_id = ?",
+                  [userId]
+              );
+  
+              let totalProductPrice = 0;
+              let totalMembersCount = members.length;
+              const memberDetails = [];
+              let subMemberCount = 0;
+  
+              for (const member of members) {
+                  // Fetch products for each member and join with product table to get product details
+                  const [productRows] = await connection.execute(
+                      `SELECT p.*, p.product_price FROM add_cart_product acp
+                      JOIN product p ON acp.product_id = p.id
+                      WHERE acp.member_id = ?`,
+                      [member.id]
+                  );
+  
+                  const memberProductPrice = productRows.reduce((sum, product) => sum + product.product_price, 0);
+                  totalProductPrice += memberProductPrice;
+  
+                  const subMembers = await getMembersRecursive(member.id);
+                  totalProductPrice += subMembers.totalProductPrice;
+                  totalMembersCount += subMembers.totalMembersCount;
+                  subMemberCount += subMembers.totalMembersCount;
+  
+                  memberDetails.push({
+                      id: member.id,
+                      products: productRows,
+                      subMembers: subMembers.memberDetails,
+                  });
+              }
+  
+              return { memberDetails, totalProductPrice, totalMembersCount, subMemberCount };
+          };
+  
+          const [rows] = await connection.execute("SELECT * FROM comission");
+          console.log(rows[0].serviceCharges);
+          const { serviceCharges, transactionFee, tax } = rows[0];
+  const percent = serviceCharges+ transactionFee+ tax;
+  console.log(percent);
+          const { memberDetails, totalProductPrice, totalMembersCount, subMemberCount } = await getMembersRecursive(user.id);
+  const commissionFind=  percent/100;
+  const secondstep = 1+commissionFind
+  
+
+  const totalSolidEarn = totalProductPrice/secondstep;
+  const formattedNumber = totalSolidEarn.toFixed(2);
+          return res.status(200).json({
+              status: 200,
+              message: "User details and products retrieved successfully",
+              data: {
+                  id: user.id,
+                  memberRegister: memberDetails,
+                  totalProductPrice,
+                  totalMembersCount,
+                  subMemberCount,
+                  earnWithCommission: formattedNumber
+              },
+          });
+      }catch (e) {
+            console.error(e);
+            return res.status(500).json(e.message);
+        } finally {
+            if (connection && connection.end) {
+                connection.end();
+            }
+        }
+    },
+    
 }
 //
 export default Commission;
