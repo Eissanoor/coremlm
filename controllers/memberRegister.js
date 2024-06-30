@@ -698,7 +698,226 @@ const MemberRegister = {
   },
   async getinvoice(req,res,next){
 res.render("PDF",{username:"EISSANOOR",Date:"12/23/23", email:"EISSANOOR@gmaill.com", cartData:["A"],member:"EISSANOOR"})
+  },
+   
+  
+  async addnewMemberWithReferalLink(req, res, next) {
+    const generateReferralLink = (userId) => {
+      const baseUrl = "https://user-mlm.vercel.app/sign-up";
+      return `${baseUrl}?ref=${userId}`;
+    };
+    let connection;
+  
+    try {
+      // Ensure all required fields are present in the request body
+      const requiredFields = [
+        "firstname",
+        "lastname",
+        "gender",
+        "email",
+        "user_id",
+        "password",
+      ];
+  
+      for (const field of requiredFields) {
+        if (!req.body[field]) {
+          return res
+            .status(400)
+            .json({ status: 400, message: `${field} is required` });
+        }
+      }
+  
+      connection = await mysql.createConnection(config);
+      await connection.connect();
+  
+      // Check if an account with the provided email already exists
+      const emailCheckQuery =
+        "SELECT COUNT(*) as count FROM member_register WHERE email = ?";
+      const [emailCheckResult] = await connection.execute(emailCheckQuery, [
+        req.body.email,
+      ]);
+      const emailExists = emailCheckResult[0].count > 0;
+  
+      if (emailExists) {
+        return res.status(400).json({
+          status: 400,
+          message: "An account with this email already exists.",
+        });
+      }
+  
+      let fileUrl = null;
+  
+      if (req.file) {
+        const file = req.file;
+        const { path, originalname, mimetype } = file;
+  
+        const timestampedFilename = `${originalname}_${Date.now()}`;
+        const { data, error } = await supabase.storage
+          .from("core")
+          .upload(`uploads/${timestampedFilename}`, fs.createReadStream(path), {
+            contentType: mimetype,
+            cacheControl: "3600",
+            upsert: false,
+            duplex: "half",
+          });
+  
+        if (error) {
+          throw error;
+        }
+  
+        fileUrl = `${supabaseUrl}/storage/v1/object/public/core/uploads/${timestampedFilename}`;
+      }
+  
+      const contactInsert = `
+        INSERT INTO member_register 
+        (firstname, lastname, gender, email, user_id, password, created_at, updated_at) 
+        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+  
+      const values = [
+        req.body.firstname,
+        req.body.lastname,
+        req.body.gender,
+        req.body.email,
+       
+       
+        req.body.user_id,
+        req.body.password,
+       
+      ];
+  
+      const [result] = await connection.execute(contactInsert, values);
+      const contact_id = result.insertId;
+  
+      const insertContactData = `INSERT INTO contact (created_at, updated_at) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+      const [contactResult] = await connection.execute(insertContactData);
+      const contact_id2 = contactResult.insertId;
+  
+      const bankdetails = `INSERT INTO bank_details (created_at, updated_at) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+      const [bankdetailsresult] = await connection.execute(bankdetails);
+      const bankdetailsresult_id = bankdetailsresult.insertId;
+  
+      const Paymnet = `INSERT INTO payment_detail (created_at, updated_at) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+      const [Paymnetresult] = await connection.execute(Paymnet);
+      const Paymnetresult_id = Paymnetresult.insertId;
+  
+      const insertProfileUser = `
+        INSERT INTO profile 
+        (user_id, contact_id, bank_details_id, payment_detail_id, created_at, updated_at) 
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+  
+      const profileValues = [
+        contact_id,
+        contact_id2,
+        bankdetailsresult_id,
+        Paymnetresult_id,
+      ];
+      await connection.execute(insertProfileUser, profileValues);
+  
+      // Retrieve the newly inserted member data
+      const memberQuery = "SELECT * FROM member_register WHERE id = ?";
+      const [memberData] = await connection.execute(memberQuery, [contact_id]);
+  
+      // Generate referral link
+      const referralLink = generateReferralLink(req.body.user_id);
+  
+      // Check if product_id array is provided in the request body
+      if (
+        Array.isArray(req.body.product_id) &&
+        req.body.product_id.length > 0
+      ) {
+        const userId = req.body.user_id;
+        const productIds = req.body.product_id;
+  
+        const productInsert = `
+          INSERT INTO add_cart_product (user_id, product_id, member_id, created_at, updated_at)
+          VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+  
+        const productPromises = productIds.map((productId) => {
+          const productValues = [userId, productId, contact_id];
+          return connection.execute(productInsert, productValues);
+        });
+  
+        await Promise.all(productPromises);
+      }
+  
+      // Retrieve related data from add_cart_product based on member_id
+     
+  
+      // Send an email to the user with the products in their cart
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: { user: sendEmail, pass: sendEmailpassword },
+      });
+  
+      // Render the EJS template
+      const emailTemplatePath = path.join(__dirname, "../views/referral.ejs");
+      const emailHtml = await ejs.renderFile(emailTemplatePath, {
+        username: req.body.firstname+req.body.lastname,
+        email: memberData[0].email,
+        password: memberData[0].password,
+        member: memberData[0],
+      
+        referralLink: referralLink, // Include the referral link
+      });
+  
+      const mailOptions = {
+        from: sendEmail,
+        to: req.body.email,
+        subject: "Welcome! Verify Your Email Address",
+        html: emailHtml,
+      };
+  
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error(error);
+          return res.status(500).json({
+            status: 500,
+            success: false,
+            message: "Failed to send OTP email",
+            data: null,
+          });
+        } else {
+          console.log("Email sent: " + info.response);
+        }
+      });
+  
+      return res.status(201).json({
+        status: 201,
+        message:
+          "Member has been created.Please check your email.",
+        data: { member: memberData[0],  },
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({ status: 500, message: e.message });
+    } finally {
+      if (connection && connection.end) {
+        await connection.end();
+      }
+    }
+  },
+  async generatereferrallink(req,res,next) {
+
+
+    try {
+      const userId = req.query.user_id; // Assuming user ID is available in the request
+      const baseUrl = "https://user-mlm.vercel.app/sign-up";
+      const referralLink = `${baseUrl}?ref=${userId}`;
+      
+      res.status(200).json({
+          success: true,
+          referralLink: referralLink
+      });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+  });
+      next(error);
   }
+
+  }
+
   
 };
 export default MemberRegister;

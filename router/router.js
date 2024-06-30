@@ -7,9 +7,11 @@ import LogoCon from "../controllers/logo.js";
 import Comission from "../controllers/commission.js";
 
 
+//referal links----------------------------------------------------------------
 
-
-//commission
+router.post("/addnewMemberWithReferalLink",upload.single("bankSlipe"), Member.addnewMemberWithReferalLink)
+router.post("/generatereferrallink", Member.generatereferrallink)
+//commission----------------------------------------------------------------
 router.get('/get_commission', Comission.get_comission )
 router.put("/update_comission",Comission.update_comission)
 router.get("/get_compensation",Comission.get_compensation)
@@ -80,4 +82,5 @@ router.get("/getAlltree",Member.getAlltree)
 
 router.get("/getdownload_button",Member.getdownload_button)
 router.get("/getinvoice",Member.getinvoice)
+
 export default router;

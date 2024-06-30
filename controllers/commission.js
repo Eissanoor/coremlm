@@ -345,10 +345,10 @@ const Commission = {
           };
   
           const [rows] = await connection.execute("SELECT * FROM comission");
-          console.log(rows[0].serviceCharges);
+          
           const { serviceCharges, transactionFee, tax } = rows[0];
   const percent = serviceCharges+ transactionFee+ tax;
-  console.log(percent);
+  
           const { memberDetails, totalProductPrice, totalMembersCount, subMemberCount } = await getMembersRecursive(user.id);
   const commissionFind=  percent/100;
   const secondstep = 1+commissionFind
@@ -356,16 +356,42 @@ const Commission = {
 
   const totalSolidEarn = totalProductPrice/secondstep;
   const formattedNumber = totalSolidEarn.toFixed(2);
+  const solidcommission = totalProductPrice - formattedNumber
+  const formattedsolidcommission = solidcommission.toFixed(2);
+  const [compensation] = await connection.execute("SELECT * FROM compensation");
+  
+  const { levelComission, referelComission } = compensation[0];
+if (levelComission==1&referelComission==1) {
+  console.log("levelComission===1&referelComission===1 ");
+  
+}
+else if(levelComission==1&referelComission==0){
+
+  console.log("levelComission===1&referelComission===0");
+}
+else if(levelComission==0&referelComission==1){
+
+  console.log("levelComission===0&referelComission===1");
+}
+else if(levelComission==0&referelComission==0){
+  console.log("levelComission==0&referelComission==0");
+
+}
+else{
+  console.log("Else section");
+}
+
           return res.status(200).json({
               status: 200,
               message: "User details and products retrieved successfully",
               data: {
                   id: user.id,
-                  memberRegister: memberDetails,
+                 
                   totalProductPrice,
                   totalMembersCount,
                   subMemberCount,
-                  earnWithCommission: formattedNumber
+                  earnWithCommission: formattedNumber,
+                  Commission: formattedsolidcommission
               },
           });
       }catch (e) {
