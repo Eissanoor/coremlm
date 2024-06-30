@@ -898,17 +898,28 @@ res.render("PDF",{username:"EISSANOOR",Date:"12/23/23", email:"EISSANOOR@gmaill.
   },
   async generatereferrallink(req,res,next) {
 
-
+    function generateRandomString(length) {
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < length; i++) {
+          result += characters.charAt(Math.floor(Math.random() * characters.length));
+      }
+      return result;
+  }
     try {
-      const userId = req.query.user_id; // Assuming user ID is available in the request
+      const userId = req.query.user_id;
+      const randomPrefix = generateRandomString(5);
+      const randomSuffix = generateRandomString(5);
+
+      const encodedId = `${randomPrefix}${userId}${randomSuffix}`;
       const baseUrl = "https://user-mlm.vercel.app/sign-up";
-      const referralLink = `${baseUrl}?ref=${userId}`;
+      const referralLink = `${baseUrl}?ref=${encodedId}`;
       
       res.status(200).json({
           success: true,
           referralLink: referralLink
       });
-  } catch (error) {
+  }catch (error) {
     res.status(500).json({
       success: false,
       error: error.message
