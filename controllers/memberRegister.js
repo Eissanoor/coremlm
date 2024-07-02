@@ -912,7 +912,7 @@ res.render("PDF",{username:"EISSANOOR",Date:"12/23/23", email:"EISSANOOR@gmaill.
       const randomSuffix = generateRandomString(5);
 
       const encodedId = `${randomPrefix}${userId}${randomSuffix}`;
-      const baseUrl = "https://user-mlm.vercel.app/sign-up";
+      const baseUrl = "https://user-mlm.vercel.app/invitation-landing";
       const referralLink = `${baseUrl}?ref=${encodedId}`;
       
       res.status(200).json({
