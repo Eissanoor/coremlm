@@ -18,6 +18,7 @@ let sendEmailpassword = process.env.sendEmailpassword;
 let sendEmail = process.env.sendEmail;
 let host = process.env.host;
 let user = process.env.user;
+ 
 let password = process.env.password;
 let database = process.env.database;
 let port = process.env.port;
@@ -927,8 +928,10 @@ res.render("PDF",{username:"EISSANOOR",Date:"12/23/23", email:"EISSANOOR@gmaill.
       next(error);
   }
 
-  }
+  },
+async apis(req,res,next ){
 
+}
   
 };
 export default MemberRegister;

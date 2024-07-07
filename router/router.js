@@ -5,7 +5,13 @@ import FATSDB from "../controllers/controlletrsMSSQL.js";
 import Member from "../controllers/memberRegister.js"
 import LogoCon from "../controllers/logo.js";
 import Comission from "../controllers/commission.js";
+import Admin from "../controllers/admin.js"
 
+//admin---------------------
+router.post("/adminLogin", Admin.adminLogin)
+router.post("/addnewadmin",upload.single("bankSlipe"),Admin.addnewadmin)
+router.post("/admineotpSend", Admin.admineotpSend)
+router.post("/adminverifyOTP",Admin.adminverifyOTP)
 
 //referal links----------------------------------------------------------------
 
