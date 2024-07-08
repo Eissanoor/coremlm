@@ -9,7 +9,7 @@ import Admin from "../controllers/admin.js"
 
 //admin---------------------
 router.post("/adminLogin", Admin.adminLogin)
-router.post("/addnewadmin",upload.single("bankSlipe"),Admin.addnewadmin)
+router.post("/addnewadmin",Admin.addnewadmin)
 router.post("/admineotpSend", Admin.admineotpSend)
 router.post("/adminverifyOTP",Admin.adminverifyOTP)
 
