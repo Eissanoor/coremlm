@@ -89,4 +89,7 @@ router.get("/getAlltree",Member.getAlltree)
 router.get("/getdownload_button",Member.getdownload_button)
 router.get("/getinvoice",Member.getinvoice)
 
+//fakers-------
+router.post("/addMultipleMembers", Member.addMultipleMembers)
+
 export default router;
