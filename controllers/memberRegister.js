@@ -6,7 +6,7 @@ import fs from "fs";
 import { createClient } from "@supabase/supabase-js";
 import ejs from "ejs";
 import pdf from "html-pdf";
-import casual from 'casual';
+import casual from "casual";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -946,13 +946,16 @@ const MemberRegister = {
     }
   },
   async addMultipleMembers(req, res, next) {
-
     let connection;
 
     // Predefined user_ids
     const userIds = [
-        109, 101, 100, 99, 98, 97, 96, 93, 92, 2,
-        3, 4, 5, 7, 9, 10, 11, 12, 13
+      92, 93, 96, 97, 98, 99, 100, 101, 109, 110, 111, 112, 113, 114, 115, 116,
+      117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131,
+      132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146,
+      147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161,
+      162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176,
+      177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189,
     ];
 
     try {
@@ -961,21 +964,28 @@ const MemberRegister = {
 
       let memberInserts = [];
       for (const userId of userIds) {
-          // Generate fake data for each member using casual
-          const firstname = casual.first_name;
-          const dateOfBirth = casual.date('YYYY-MM-DD'); // Get a random date in the format YYYY-MM-DD
-          const gender = casual.random_element(['Male', 'Female', 'Other']);
-          const email = casual.email;
-          const phoneNo = casual.phone;
-          const userName = casual.username;
-          const password = casual.password;
+        // Generate fake data for each member using casual
+        const firstname = casual.first_name;
+        const dateOfBirth = casual.date("YYYY-MM-DD"); // Get a random date in the format YYYY-MM-DD
+        const gender = casual.random_element(["Male", "Female", "Other"]);
+        const email = casual.email;
+        const phoneNo = casual.phone;
+        const userName = casual.username;
+        const password = casual.password;
 
-          // Prepare the SQL query
-          const values = [
-              firstname, dateOfBirth, gender, email, phoneNo, userName, userId, password
-          ];
+        // Prepare the SQL query
+        const values = [
+          firstname,
+          dateOfBirth,
+          gender,
+          email,
+          phoneNo,
+          userName,
+          userId,
+          password,
+        ];
 
-          memberInserts.push(values);
+        memberInserts.push(values);
       }
 
       // Perform a batch insert
@@ -984,16 +994,15 @@ const MemberRegister = {
       (firstname, date_of_birth, gender, email, phone_no, user_name, user_id, password) 
       VALUES ?`;
 
-    
       await connection.query(contactInsert, [memberInserts]);
 
       await connection.commit(); // Commit the transaction
 
       return res.status(201).json({
-          status: 201,
-          message: `${userIds.length} members have been created successfully.`
+        status: 201,
+        message: `${userIds.length} members have been created successfully.`,
       });
-  }  catch (e) {
+    } catch (e) {
       console.error(e);
       if (connection) {
         await connection.rollback(); // Roll back the transaction on error
@@ -1003,6 +1012,7 @@ const MemberRegister = {
       if (connection) {
         await connection.end();
       }
-    }},
+    }
+  },
 };
 export default MemberRegister;
