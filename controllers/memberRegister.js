@@ -574,13 +574,17 @@ const MemberRegister = {
   },
   async getAlltree(req, res, next) {
     let connection;
+    const page = parseInt(req.query.page, 10) || 1;  // Default to page 1 if not specified
+    const limit = parseInt(req.query.limit, 10) || 10;  // Default limit to 10 if not specified
+    const offset = (page - 1) * limit;
 
     try {
       connection = await mysql.createConnection(config);
 
-      // Get all users from the user table ordered by creation time
+      // Get a subset of users from the user table ordered by creation time
       const [userRows] = await connection.execute(
-        "SELECT * FROM user ORDER BY id ASC"
+        "SELECT * FROM user ORDER BY id ASC LIMIT ? OFFSET ?",
+        [limit, offset]
       );
 
       if (userRows.length === 0) {
