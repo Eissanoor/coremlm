@@ -574,48 +574,48 @@ const MemberRegister = {
   },
   async getAlltree(req, res, next) {
     let connection;
-    const page = parseInt(req.query.page, 10) || 1;  // Default to page 1 if not specified
-    const limit = parseInt(req.query.limit, 10) || 10;  // Default limit to 10 if not specified
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const memberPage = parseInt(req.query.memberPage, 10) || 1;
+    const memberLimit = parseInt(req.query.memberLimit, 10) || 5;
     const offset = (page - 1) * limit;
+    const memberOffset = (memberPage - 1) * memberLimit;
 
     try {
-      connection = await mysql.createConnection(config);
+        connection = await mysql.createConnection(config);
 
-      // Get a subset of users from the user table ordered by creation time
-      const [userRows] = await connection.execute(
-        "SELECT * FROM user ORDER BY id ASC LIMIT ? OFFSET ?",
-        [limit, offset]
-      );
-
-      if (userRows.length === 0) {
-        return res.status(404).json({
-          status: 404,
-          message: "No users found",
-        });
-      }
-
-      // Recursively get all members for a given user_id
-      const getMembersRecursive = async (userId) => {
-        const [members] = await connection.execute(
-          "SELECT * FROM member_register WHERE user_id = ?",
-          [userId]
+        // Get a subset of users from the user table ordered by creation time
+        const [userRows] = await connection.execute(
+            "SELECT * FROM user ORDER BY id ASC LIMIT ? OFFSET ?",
+            [limit, offset]
         );
-        for (const member of members) {
-          member.subMembers = await getMembersRecursive(member.id);
+
+        if (userRows.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: "No users found",
+            });
         }
-        return members;
-      };
 
-      // Attach members to each user
-      for (const user of userRows) {
-        user.memberRegister = await getMembersRecursive(user.id);
-      }
+        // Get members for a given user_id with pagination
+        const getMembers = async (userId) => {
+            const [members] = await connection.execute(
+                "SELECT * FROM member_register WHERE user_id = ? LIMIT ? OFFSET ?",
+                [userId, memberLimit, memberOffset]
+            );
+            return members;
+        };
 
-      return res.status(200).json({
-        status: 200,
-        message: "Users and members retrieved successfully",
-        data: userRows,
-      });
+        // Attach paginated members to each user
+        for (const user of userRows) {
+            user.memberRegister = await getMembers(user.id);
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: "Users and members retrieved successfully",
+            data: userRows,
+        });
     } catch (e) {
       console.error(e);
       return res.status(500).send(e);
