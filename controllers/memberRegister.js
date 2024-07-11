@@ -574,12 +574,9 @@ const MemberRegister = {
   },
   async getAlltree(req, res, next) {
     let connection;
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
-    const memberPage = parseInt(req.query.memberPage, 10) || 1;
-    const memberLimit = parseInt(req.query.memberLimit, 10) || 5;
+    const page = parseInt(req.query.page, 10) || 1;  // Default to page 1 if not specified
+    const limit = parseInt(req.query.limit, 10) || 10;  // Default limit to 10 if not specified
     const offset = (page - 1) * limit;
-    const memberOffset = (memberPage - 1) * memberLimit;
 
     try {
         connection = await mysql.createConnection(config);
@@ -597,18 +594,27 @@ const MemberRegister = {
             });
         }
 
-        // Get members for a given user_id with pagination
-        const getMembers = async (userId) => {
+        // Recursively get all members for a given user_id
+        const getMembersRecursive = async (userId, mPage, mLimit) => {
+            const memberOffset = (mPage - 1) * mLimit;
             const [members] = await connection.execute(
                 "SELECT * FROM member_register WHERE user_id = ? LIMIT ? OFFSET ?",
-                [userId, memberLimit, memberOffset]
+                [userId, mLimit, memberOffset]
             );
+
+            for (const member of members) {
+                // Use a default or derived pagination setting for subMembers
+                const subMemberPage = parseInt(member.subMemberPage) || 1;
+                const subMemberLimit = parseInt(member.subMemberLimit) || 10;
+                member.subMembers = await getMembersRecursive(member.id, subMemberPage, subMemberLimit);
+            }
             return members;
         };
 
-        // Attach paginated members to each user
+        // Attach members to each user
         for (const user of userRows) {
-            user.memberRegister = await getMembers(user.id);
+            // Could also allow different pagination settings per user, passed in the request
+            user.memberRegister = await getMembersRecursive(user.id, page, limit);
         }
 
         return res.status(200).json({
