@@ -444,24 +444,34 @@ const MemberRegister = {
   },
   async get_all_Member(req, res, next) {
     try {
+      const { page = 1, limit = 10 } = req.query;
+      const offset = (page - 1) * limit;
+  
       const connection = await mysql.createConnection(config);
-
-      // Fetch all members
-      const [members] = await connection.execute(
-        "SELECT * FROM member_register"
+  
+      // Fetch the total number of members
+      const [totalMembersResult] = await connection.execute(
+        "SELECT COUNT(*) as total FROM member_register"
       );
-
+      const totalMembers = totalMembersResult[0].total;
+  
+      // Fetch paginated members
+      const [members] = await connection.execute(
+        "SELECT * FROM member_register LIMIT ? OFFSET ?",
+        [parseInt(limit), parseInt(offset)]
+      );
+  
       // Fetch user data for each member and combine results
       const memberDataPromises = members.map(async (member) => {
         // Remove password field from member object if it exists
         const { password, ...memberWithoutPassword } = member;
-
+  
         // Fetch the first cart product for the current member
         const [cartProducts] = await connection.execute(
           "SELECT * FROM add_cart_product WHERE member_id = ? LIMIT 1",
           [member.id] // assuming member.id is the member's ID
         );
-
+  
         let cartProductWithDetails = null;
         if (cartProducts.length > 0) {
           const cartProduct = cartProducts[0];
@@ -469,40 +479,46 @@ const MemberRegister = {
             "SELECT * FROM product WHERE id = ?",
             [cartProduct.product_id] // assuming product_id is the product's ID
           );
-
+  
           cartProductWithDetails = {
             productDetails: productDetails[0], // Assuming there is always one product
           };
         }
-
+  
         // Fetch additional user details
         const [userDetails] = await connection.execute(
           "SELECT * FROM user WHERE id = ?",
           [member.user_id] // assuming member.user_id is the user's ID
         );
-
+  
         let userWithoutPassword = null;
         if (userDetails.length > 0) {
           const { password: userPassword, ...user } = userDetails[0];
           userWithoutPassword = user;
         }
-
+  
         return {
           ...memberWithoutPassword,
           SponserDetail: userWithoutPassword,
           cartProduct: cartProductWithDetails,
         };
       });
-
+  
       const membersWithCartProductsAndUserDetails = await Promise.all(
         memberDataPromises
       );
-
+  
       connection.end();
-
-      return res
-        .status(200)
-        .send({ data: membersWithCartProductsAndUserDetails });
+  
+      return res.status(200).send({
+        data: membersWithCartProductsAndUserDetails,
+        pagination: {
+          total: totalMembers,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(totalMembers / limit),
+        },
+      });
     } catch (e) {
       console.error(e);
       return res.status(500).send("Internal Server Error");
