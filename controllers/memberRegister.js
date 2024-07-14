@@ -590,8 +590,8 @@ const MemberRegister = {
   },
   async getAlltree(req, res, next) {
     let connection;
-    const page = parseInt(req.query.page, 10) || 1;  // Default to page 1 if not specified
-    const limit = parseInt(req.query.limit, 10) || 10;  // Default limit to 10 if not specified
+    const page = parseInt(req.query.page, 1) || 1;  // Default to page 1 if not specified
+    const limit = parseInt(req.query.limit, 1) || 1;  // Default limit to 10 if not specified
     const offset = (page - 1) * limit;
 
     try {
