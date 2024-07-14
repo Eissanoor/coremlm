@@ -976,7 +976,7 @@ const MemberRegister = {
 
     // Predefined user_ids
     const userIds = [
-      92, 93
+      92
     ];
 
     try {
