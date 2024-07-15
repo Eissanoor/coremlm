@@ -1,8 +1,11 @@
 import express from "express";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
-import cors from "cors";
+
 import path from "path"
+import  cors from 'cors';
+import helmet from 'helmet';
+import morgan from'morgan';
 import Member from "./controllers/memberRegister.js"
 const app = express();
 const corsOptions = {
@@ -14,13 +17,17 @@ app.use(cookieParser());
 // Set EJS as the templating engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(process.cwd(), 'views'));
-// app.use("/uploads", express.static(__dirname + "/uploads"));
-// serve static files from the uploads directory
+
 const uploadFolder = path.join(process.cwd(), "uploads"); // get the absolute path to the uploads folder
 app.use("/uploads", express.static(uploadFolder));
 import FATSDB from "./router/router.js";
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+
+app.use(cors()); // Enable CORS
+app.use(helmet()); // Set security-related HTTP headers
+app.use(morgan('dev')); // HTTP request logger
 app.use("/api", FATSDB);
 app.get("/download-pdf",Member.download_pdf)
 const PORT = 7001;
