@@ -30,6 +30,16 @@ app.use(helmet()); // Set security-related HTTP headers
 app.use(morgan('dev')); // HTTP request logger
 app.use("/api", FATSDB);
 app.get("/download-pdf",Member.download_pdf)
+// Handle unknown routes
+app.use((req, res, next) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: "Internal Server Error" });
+});
 const PORT = 7001;
 app.listen(PORT, () => {
   console.log(`Server started on PORT ${PORT}`);
