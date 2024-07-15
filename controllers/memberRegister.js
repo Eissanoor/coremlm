@@ -974,15 +974,18 @@ const MemberRegister = {
   async addMultipleMembers(req, res, next) {
     let connection;
 
-    // Predefined user_ids
-    const userIds = [
-      92
-    ];
-
     try {
+      // Extract userIds from the request body
+      const userIds = req.body.userIds;
+      
+      // Check if userIds is provided and is an array
+      if (!Array.isArray(userIds) || userIds.length === 0) {
+        return res.status(400).json({ status: 400, message: "Invalid userIds provided." });
+      }
+  
       connection = await mysql.createConnection(config);
       await connection.beginTransaction(); // Start a new transaction
-
+  
       let memberInserts = [];
       for (const userId of userIds) {
         // Generate fake data for each member using casual
@@ -993,7 +996,7 @@ const MemberRegister = {
         const phoneNo = casual.phone;
         const userName = casual.username;
         const password = casual.password;
-
+  
         // Prepare the SQL query
         const values = [
           firstname,
@@ -1005,20 +1008,20 @@ const MemberRegister = {
           userId,
           password,
         ];
-
+  
         memberInserts.push(values);
       }
-
+  
       // Perform a batch insert
       const contactInsert = `
       INSERT INTO member_register 
       (firstname, date_of_birth, gender, email, phone_no, user_name, user_id, password) 
       VALUES ?`;
-
+  
       await connection.query(contactInsert, [memberInserts]);
-
+  
       await connection.commit(); // Commit the transaction
-
+  
       return res.status(201).json({
         status: 201,
         message: `${userIds.length} members have been created successfully.`,
