@@ -996,7 +996,7 @@ const MemberRegister = {
         const phoneNo = casual.phone;
         const userName = casual.username;
         const password = casual.password;
-  
+  //-----
         // Prepare the SQL query
         const values = [
           firstname,
