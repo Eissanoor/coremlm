@@ -6,7 +6,13 @@ import Member from "../controllers/memberRegister.js"
 import LogoCon from "../controllers/logo.js";
 import Comission from "../controllers/commission.js";
 import Admin from "../controllers/admin.js"
-
+import EmailInbox from '../controllers/emailController.js'
+//---------------------------email-inbox------------------------
+router.post('/email_send', EmailInbox.addNewMessage)
+router.get('/email_receved', EmailInbox.getInboxMessages)
+router.get('/getSentMessages', EmailInbox.getSentMessages)
+router.get("/getSentOneMessages", EmailInbox.getSentOneMessages)
+router.get('/getInboxOneMessages', EmailInbox.getInboxOneMessages)
 //admin---------------------
 router.post("/adminLogin", Admin.adminLogin)
 router.post("/addnewadmin",Admin.addnewadmin)
