@@ -387,8 +387,19 @@ const Email = {
             const { id } = req.params; // Get the id from the request parameters
             const connection = await mysql.createConnection(config);
         
+            // Query to get user_name (concatenation of firstname and lastname) and other fields from the 'user' table.
+            const userQuery = `
+              SELECT 
+                id,
+                CONCAT(firstname, ' ', lastname) AS user_name,
+                email, isAdmin
+              FROM user WHERE id = ?
+            `;
+            const [userRows] = await connection.execute(userQuery, [id]);
+        
+            // Query to get data from the 'member_register' table based on user_id.
             const memberRegisterQuery = `
-              SELECT email, user_name, image 
+              SELECT email, user_name 
               FROM member_register 
               WHERE user_id = ?
             `;
@@ -397,8 +408,10 @@ const Email = {
             connection.end();
         
             // Combine the results from both queries into one object.
-            const data =  memberRegisterRows;
-        
+            const data = {
+              users: userRows,
+              member_registers: memberRegisterRows,
+            };
         
             return res.status(200).send({ data });
           }catch (e) {
