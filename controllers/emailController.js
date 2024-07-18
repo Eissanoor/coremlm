@@ -388,7 +388,7 @@ const Email = {
             const connection = await mysql.createConnection(config);
         
             const memberRegisterQuery = `
-              SELECT email, user_name 
+              SELECT email, user_name, image 
               FROM member_register 
               WHERE user_id = ?
             `;
@@ -397,10 +397,8 @@ const Email = {
             connection.end();
         
             // Combine the results from both queries into one object.
-            const data = {
-
-              member_registers: memberRegisterRows,
-            };
+            const data =  memberRegisterRows;
+        
         
             return res.status(200).send({ data });
           }catch (e) {
