@@ -13,7 +13,7 @@ router.get('/email_receved', EmailInbox.getInboxMessages)
 router.get('/getSentMessages', EmailInbox.getSentMessages)
 router.get("/getSentOneMessages", EmailInbox.getSentOneMessages)
 router.get('/getInboxOneMessages', EmailInbox.getInboxOneMessages)
-router.get('/get_all_people',EmailInbox.get_all_people)
+router.get('/get_all_my_members/:id',EmailInbox.get_all_my_members)
 //admin---------------------
 router.post("/adminLogin", Admin.adminLogin)
 router.post("/addnewadmin",Admin.addnewadmin)

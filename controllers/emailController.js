@@ -382,29 +382,23 @@ const Email = {
             }
         }
     },
-    async get_all_people(req, res, next) {
+    async get_all_my_members(req, res, next) {
         try {
+            const { id } = req.params; // Get the id from the request parameters
             const connection = await mysql.createConnection(config);
         
-            // Query to get user_name (concatenation of firstname and lastname) and other fields from the 'user' table.
-            const userQuery = `
-            SELECT 
-              id,
-              CONCAT(firstname, ' ', lastname) AS user_name,
-              email, isAdmin
-            FROM user
-          `;
-            const [userRows] = await connection.execute(userQuery);
-        
-            // Query to get data from the 'member_register' table.
-            const memberRegisterQuery = "SELECT email, user_name FROM member_register";
-            const [memberRegisterRows] = await connection.execute(memberRegisterQuery);
+            const memberRegisterQuery = `
+              SELECT email, user_name 
+              FROM member_register 
+              WHERE user_id = ?
+            `;
+            const [memberRegisterRows] = await connection.execute(memberRegisterQuery, [id]);
         
             connection.end();
         
             // Combine the results from both queries into one object.
             const data = {
-              users: userRows,
+
               member_registers: memberRegisterRows,
             };
         
