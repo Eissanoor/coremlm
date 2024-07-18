@@ -381,7 +381,39 @@ const Email = {
                 connection.end();
             }
         }
-    }
+    },
+    async get_all_people(req, res, next) {
+        try {
+            const connection = await mysql.createConnection(config);
+        
+            // Query to get user_name (concatenation of firstname and lastname) and other fields from the 'user' table.
+            const userQuery = `
+            SELECT 
+              id,
+              CONCAT(firstname, ' ', lastname) AS user_name,
+              email, isAdmin
+            FROM user
+          `;
+            const [userRows] = await connection.execute(userQuery);
+        
+            // Query to get data from the 'member_register' table.
+            const memberRegisterQuery = "SELECT email, user_name FROM member_register";
+            const [memberRegisterRows] = await connection.execute(memberRegisterQuery);
+        
+            connection.end();
+        
+            // Combine the results from both queries into one object.
+            const data = {
+              users: userRows,
+              member_registers: memberRegisterRows,
+            };
+        
+            return res.status(200).send({ data });
+          }catch (e) {
+          console.error(e);
+          return res.status(500).send("Internal Server Error");
+        }
+      },
 
 }
 export default Email;
