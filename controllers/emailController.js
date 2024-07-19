@@ -399,7 +399,7 @@ const Email = {
         
             // Query to get data from the 'member_register' table based on user_id.
             const memberRegisterQuery = `
-              SELECT email, user_name 
+              SELECT email, user_name, id 
               FROM member_register 
               WHERE user_id = ?
             `;
