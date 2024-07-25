@@ -1794,58 +1794,61 @@ WHERE profile.user_id = ?
     try {
       connection = await mysql.createConnection(config);
       await connection.connect();
-
+  
       const userId = req.params.id;
-
+  
       // Fetch existing user data
       const [existingUser] = await connection.execute(
         "SELECT * FROM user WHERE id = ?",
         [userId]
       );
-
+  
       if (existingUser.length === 0) {
         return res.status(404).json({
           status: 404,
           message: "User not found",
         });
       }
-
+  
       const user = existingUser[0];
-
+  
       // Use existing data if no new data is provided
       const updatedFirstName = req.body.firstname || user.firstname;
       const updatedLastName = req.body.lastname || user.lastname;
       const updatedGender = req.body.gender || user.gender;
       const updatedTwitter = req.body.twitter || user.twitter;
       const updatedFacebook = req.body.facebook || user.facebook;
-      const updatedisVarified = req.body.isVarified || user.isVarified;
-      const updatedpassword = req.body.password || user.password;
+      const updatedIsVarified = req.body.isVarified || user.isVarified;
+      const updatedPassword = req.body.password || user.password;
+      const updatedIsAdmin = req.body.isAdmin || user.isAdmin;
+  
       const userUpdate = `
-      UPDATE user
-      SET firstname = ?, lastname = ?, gender = ?, twitter = ?, facebook = ?, isVarified=?, password=?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `;
-
+        UPDATE user
+        SET firstname = ?, lastname = ?, gender = ?, twitter = ?, facebook = ?, isVarified = ?, password = ?, isAdmin = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `;
+  
       const values = [
         updatedFirstName,
         updatedLastName,
         updatedGender,
         updatedTwitter,
         updatedFacebook,
-        updatedisVarified,
-        updatedpassword,
+        updatedIsVarified,
+        updatedPassword,
+        updatedIsAdmin,
         userId,
       ];
-
+  
       const [result] = await connection.execute(userUpdate, values);
-
+  
       if (result.affectedRows === 0) {
         return res.status(404).json({
           status: 404,
           message: "User not found",
         });
       }
-
+  
       // Return the updated (or existing) user data
       return res.status(200).json({
         status: 200,
@@ -1857,8 +1860,9 @@ WHERE profile.user_id = ?
           gender: updatedGender,
           twitter: updatedTwitter,
           facebook: updatedFacebook,
-          isVarified: updatedisVarified,
-          password:updatedpassword,
+          isVarified: updatedIsVarified,
+          password: updatedPassword,
+          isAdmin: updatedIsAdmin,
           updated_at: new Date(), // assuming the database updates the timestamp automatically
         },
       });
