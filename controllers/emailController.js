@@ -419,6 +419,131 @@ const Email = {
           return res.status(500).send("Internal Server Error");
         }
       },
+      async replyMessage(req, res, next) {
+        let connection;
+    
+        try {
+            connection = await mysql.createConnection(config);
+            await connection.connect();
+            
+            const { sender_id, original_message_id, body } = req.body;
+    
+            // Ensure all necessary fields are provided
+            if (!sender_id || !original_message_id || !body) {
+                return res.status(400).json({ status: 400, message: "Missing required fields" });
+            }
+    
+            // Retrieve the original message to get the receiver_id and subject
+            const originalMessageQuery = `
+                SELECT sender_id AS receiver_id, subject
+                FROM email_inbox
+                WHERE id = ?
+            `;
+    
+            const [originalMessageRows] = await connection.execute(originalMessageQuery, [original_message_id]);
+            
+            if (originalMessageRows.length === 0) {
+                return res.status(404).json({ status: 404, message: "Original message not found" });
+            }
+    
+            const { receiver_id, subject } = originalMessageRows[0];
+    
+            // Check if receiver_id exists in user or member_register table
+            const checkUserQuery = "SELECT email FROM user WHERE id = ?";
+            const checkMemberQuery = "SELECT email FROM member_register WHERE id = ?";
+        
+            let email = null;
+            
+            // First, check in the user table
+            let [userRows] = await connection.execute(checkUserQuery, [receiver_id]);
+            
+            if (userRows.length > 0) {
+                email = userRows[0].email;
+            } else {
+                // If not found in user table, check in the member_register table
+                let [memberRows] = await connection.execute(checkMemberQuery, [receiver_id]);
+                
+                if (memberRows.length > 0) {
+                    email = memberRows[0].email;
+                } else {
+                    // If receiver_id not found in either table, handle the error
+                    return res.status(404).json({ status: 404, message: "Receiver not found" });
+                }
+            }
+    
+            // Prepend "Re: " to the original subject if not already present
+            const replySubject = subject.startsWith("Re: ") ? subject : `Re: ${subject}`;
+    
+            // Insert the reply message into the inbox table
+            const insertInboxMessageQuery = `
+                INSERT INTO email_inbox (sender_id, receiver_id, subject, body, is_read, received_at)
+                VALUES (?, ?, ?, ?, false, NOW())
+            `;
+    
+            const [inboxResult] = await connection.execute(insertInboxMessageQuery, [sender_id, receiver_id, replySubject, body]);
+    
+            // Insert the reply message into the sent table
+            const insertSentMessageQuery = `
+                INSERT INTO email_send (sender_id, receiver_id, subject, body, sent_at)
+                VALUES (?, ?, ?, ?, NOW())
+            `;
+    
+            const [sentResult] = await connection.execute(insertSentMessageQuery, [sender_id, receiver_id, replySubject, body]);
+    
+            // Fetch the newly added message from the inbox table
+            const [newInboxMessageRows] = await connection.execute(
+                "SELECT * FROM email_inbox WHERE id = ?",
+                [inboxResult.insertId]
+            );
+    
+            const newInboxMessage = newInboxMessageRows[0];
+    
+            // Fetch the newly added message from the sent table
+            const [newSentMessageRows] = await connection.execute(
+                "SELECT * FROM email_send WHERE id = ?",
+                [sentResult.insertId]
+            );
+    
+            const newSentMessage = newSentMessageRows[0];
+    
+            // Set up the email transporter
+            const transporter = nodemailer.createTransport({
+                service: "gmail",
+                auth: { user: sendEmail, pass: sendEmailpassword },
+            });
+    
+            const mailOptions = {
+                from: sendEmail,
+                to: email, // Use the retrieved email address
+                subject: "Reply to your message",
+                html: `You have received a reply from user ${sender_id} with the subject: ${replySubject}. Please check your inbox for more details.`,
+            };
+    
+            // Send the notification email
+            transporter.sendMail(mailOptions, (error, info) => {
+                if (error) {
+                    console.error("Failed to send email:", error);
+                    // Handle email sending failure
+                } else {
+                    console.log("Email sent:", info.response);
+                }
+            });
+    
+            return res.status(201).json({
+                status: 201,
+                message: "Reply message has been added to the inbox and sent items",
+                inboxData: newInboxMessage,
+                sentData: newSentMessage,
+            });
+        } catch (e) {
+            console.error(e);
+            return res.status(500).json(e.message);
+        } finally {
+            if (connection && connection.end) {
+                connection.end();
+            }
+        }
+    }
 //
 }
 export default Email;
