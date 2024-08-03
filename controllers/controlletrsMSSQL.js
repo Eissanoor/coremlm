@@ -30,17 +30,54 @@ const config = {
 
 const FATSDB = {
   async allgetprofile(req, res, next) {
-    try {
-      const connection = await mysql.createConnection(config);
-      const [rows, fields] = await connection.execute("SELECT * FROM profile");
-      connection.end();
+    let connection;
 
-      return res.status(200).send({ data: rows });
+    try {
+        connection = await mysql.createConnection(config);
+        const [rows, fields] = await connection.execute("SELECT * FROM profile");
+
+        if (rows.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: "No profiles found",
+            });
+        }
+
+        // Convert rows to a JSON string and split it into smaller chunks
+        const dataString = JSON.stringify(rows);
+        const chunkSize = 50; // Size of each chunk
+        let startIndex = 0;
+
+        // Function to send chunks at intervals
+        const sendChunk = () => {
+            if (startIndex < dataString.length) {
+                const endIndex = Math.min(startIndex + chunkSize, dataString.length);
+                const chunk = dataString.slice(startIndex, endIndex);
+
+                res.write(chunk); // Write chunk to response
+
+                startIndex = endIndex;
+                setTimeout(sendChunk, 100); // Schedule next chunk
+            } else {
+                res.end(); // End response after sending all chunks
+            }
+        };
+
+        res.writeHead(200, { 'Content-Type': 'application/json' }); // Set headers
+        sendChunk(); // Start sending chunks
+        
     } catch (e) {
-      console.error(e);
-      return res.status(500).send("Internal Server Error");
+        console.error(e);
+        return res.status(500).send("Internal Server Error");
+    } finally {
+        if (connection && connection.end) {
+            connection.end(); // Close the database connection
+        }
     }
-  },
+},
+
+
+
   async user_profile(req, res, next) {
     try {
       const connection = await mysql.createConnection(config);

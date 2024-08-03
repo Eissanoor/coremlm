@@ -40,7 +40,7 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: "Internal Server Error" });
 });
-const PORT = 7001;
+const PORT = 7002;
 app.listen(PORT, () => {
   console.log(`Server started on PORT ${PORT}`);
 });

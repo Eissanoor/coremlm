@@ -590,17 +590,13 @@ const MemberRegister = {
   },
   async getAlltree(req, res, next) {
     let connection;
-    const page = parseInt(req.query.page, 10) || 1;  // Default to page 1 if not specified
-    const limit = parseInt(req.query.limit, 10) || 10;  // Default limit to 10 if not specified
-    const offset = (page - 1) * limit;
 
     try {
         connection = await mysql.createConnection(config);
 
-        // Get a subset of users from the user table ordered by creation time
+        // Get all users with only the required fields
         const [userRows] = await connection.execute(
-            "SELECT * FROM user ORDER BY id ASC LIMIT ? OFFSET ?",
-            [limit, offset]
+            "SELECT id, email, firstname, lastname, image FROM user ORDER BY id ASC"
         );
 
         if (userRows.length === 0) {
@@ -611,42 +607,59 @@ const MemberRegister = {
         }
 
         // Recursively get all members for a given user_id
-        const getMembersRecursive = async (userId, mPage, mLimit) => {
-            const memberOffset = (mPage - 1) * mLimit;
+        const getMembersRecursive = async (userId) => {
             const [members] = await connection.execute(
-                "SELECT * FROM member_register WHERE user_id = ? LIMIT ? OFFSET ?",
-                [userId, mLimit, memberOffset]
+                "SELECT id, email, image, firstname, lastname, image FROM member_register WHERE user_id = ?",
+                [userId]
             );
 
             for (const member of members) {
-                // Use a default or derived pagination setting for subMembers
-                const subMemberPage = parseInt(member.subMemberPage) || 1;
-                const subMemberLimit = parseInt(member.subMemberLimit) || 10;
-                member.subMembers = await getMembersRecursive(member.id, subMemberPage, subMemberLimit);
+                member.subMembers = await getMembersRecursive(member.id);
             }
             return members;
         };
 
         // Attach members to each user
         for (const user of userRows) {
-            // Could also allow different pagination settings per user, passed in the request
-            user.memberRegister = await getMembersRecursive(user.id, page, limit);
+            user.memberRegister = await getMembersRecursive(user.id);
         }
 
-        return res.status(200).json({
-            status: 200,
-            message: "Users and members retrieved successfully",
-            data: userRows,
-        });
+        // Convert userRows to a JSON string and split it into smaller chunks
+        const dataString = JSON.stringify(userRows);
+        const chunkSize = 100; // Adjust the chunk size for streaming effect
+        let startIndex = 0;
+
+        // Function to send chunks at intervals
+        const sendChunk = () => {
+            if (startIndex < dataString.length) {
+                const endIndex = Math.min(startIndex + chunkSize, dataString.length);
+                const chunk = dataString.slice(startIndex, endIndex);
+
+                res.write(chunk);
+
+                startIndex = endIndex;
+                setTimeout(sendChunk, 100); // Adjust the interval for streaming effect
+            } else {
+                res.end(); // End response after sending all chunks
+            }
+        };
+
+        res.writeHead(200, { 'Content-Type': 'application/json' }); // Set headers
+        sendChunk(); // Start sending chunks
+
     } catch (e) {
-      console.error(e);
-      return res.status(500).send(e);
+        console.error(e);
+        return res.status(500).send(e);
     } finally {
-      if (connection && connection.end) {
-        connection.end();
-      }
+        if (connection && connection.end) {
+            connection.end(); // Close the database connection
+        }
     }
-  },
+},
+
+
+
+
   async download_pdf(req, res, next) {
     const { email, password } = req.query;
     async function getUserByEmail(email) {
