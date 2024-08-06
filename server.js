@@ -23,7 +23,7 @@ app.use("/uploads", express.static(uploadFolder));
 import FATSDB from "./router/router.js";
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
+//
 
 app.use(cors()); // Enable CORS
 app.use(helmet()); // Set security-related HTTP headers
