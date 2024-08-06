@@ -340,7 +340,7 @@ const Email = {
                 ORDER BY received_at DESC
             `;
     
-            const [rows] = await connection.execute(query, [receiver_id, sender_id]);
+            const [messages] = await connection.execute(query, [receiver_id, sender_id]);
     
             // Function to get sender details
             const getSenderDetails = async (sender_id) => {
@@ -360,18 +360,38 @@ const Email = {
                 return null;
             };
     
-            // Add sender details to each message
-            for (let message of rows) {
+            // Create a map to store messages by id
+            const messageMap = new Map();
+    
+            // Populate the map with messages
+            for (let message of messages) {
+                message.replies = [];
+                messageMap.set(message.id, message);
+    
+                // Add sender details
                 const senderDetails = await getSenderDetails(message.sender_id);
                 if (senderDetails) {
                     message.sender = senderDetails;
                 }
             }
     
+            // Organize messages into a tree structure
+            const rootMessages = [];
+            for (let message of messages) {
+                if (message.reply_to_id) {
+                    const parentMessage = messageMap.get(message.reply_to_id);
+                    if (parentMessage) {
+                        parentMessage.replies.push(message);
+                    }
+                } else {
+                    rootMessages.push(message);
+                }
+            }
+    
             return res.status(200).json({
                 status: 200,
-                message: "Inbox messages retrieved successfully",
-                data: rows
+                message: "Threaded inbox messages retrieved successfully",
+                data: rootMessages
             });
         } catch (e) {
             console.error(e);
