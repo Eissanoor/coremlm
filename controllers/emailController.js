@@ -543,7 +543,46 @@ const Email = {
                 connection.end();
             }
         }
-    }
+    },
+    async deleteInboxMessage(req, res, next) {
+        let connection;
+    
+        try {
+            connection = await mysql.createConnection(config);
+            await connection.connect();
+    
+            const { message_id } = req.query;
+    
+            // Ensure message_id is provided
+            if (!message_id) {
+                return res.status(400).json({ status: 400, message: "Missing required query parameter: message_id" });
+            }
+    
+            const deleteQuery = `
+                DELETE FROM email_inbox 
+                WHERE id = ?
+            `;
+    
+            const [result] = await connection.execute(deleteQuery, [message_id]);
+    
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ status: 404, message: "Message not found" });
+            }
+    
+            return res.status(200).json({
+                status: 200,
+                message: "Message deleted successfully"
+            });
+        } catch (e) {
+            console.error(e);
+            return res.status(500).json(e.message);
+        } finally {
+            if (connection && connection.end) {
+                connection.end();
+            }
+        }
+    },
+    
 //
 }
 export default Email;
