@@ -21,7 +21,7 @@ router.get('/getSentMessages', EmailInbox.getSentMessages)
 router.get("/getSentOneMessages", EmailInbox.getSentOneMessages)
 router.get('/getInboxOneMessages', EmailInbox.getInboxOneMessages)
 router.get('/get_all_my_members/:id',EmailInbox.get_all_my_members)
-router.delete('/deleteInboxMessage', EmailInbox.deleteInboxMessage)
+router.delete('/deleteInboxMessage', EmailInbox.deleteInboxMessages)
 //admin---------------------
 router.post("/adminLogin", Admin.adminLogin)
 router.post("/addnewadmin",Admin.addnewadmin)

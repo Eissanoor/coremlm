@@ -544,34 +544,37 @@ const Email = {
             }
         }
     },
-    async deleteInboxMessage(req, res, next) {
+    async deleteInboxMessages(req, res, next) {
         let connection;
     
         try {
             connection = await mysql.createConnection(config);
             await connection.connect();
     
-            const { message_id } = req.query;
+            const { message_ids } = req.body;
     
-            // Ensure message_id is provided
-            if (!message_id) {
-                return res.status(400).json({ status: 400, message: "Missing required query parameter: message_id" });
+            // Ensure message_ids is provided and is an array
+            if (!message_ids || !Array.isArray(message_ids) || message_ids.length === 0) {
+                return res.status(400).json({ status: 400, message: "Missing or invalid query parameter: message_ids" });
             }
+    
+            // Construct placeholders for SQL query
+            const placeholders = message_ids.map(() => '?').join(',');
     
             const deleteQuery = `
                 DELETE FROM email_inbox 
-                WHERE id = ?
+                WHERE id IN (${placeholders})
             `;
     
-            const [result] = await connection.execute(deleteQuery, [message_id]);
+            const [result] = await connection.execute(deleteQuery, message_ids);
     
             if (result.affectedRows === 0) {
-                return res.status(404).json({ status: 404, message: "Message not found" });
+                return res.status(404).json({ status: 404, message: "No messages found to delete" });
             }
     
             return res.status(200).json({
                 status: 200,
-                message: "Message deleted successfully"
+                message: `${result.affectedRows} message(s) deleted successfully`
             });
         } catch (e) {
             console.error(e);
@@ -582,6 +585,7 @@ const Email = {
             }
         }
     },
+    
     
 //
 }
