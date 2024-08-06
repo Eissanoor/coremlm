@@ -35,18 +35,20 @@ const config = {
 const Payment = {
 async sendpayment(req,res,next) {
 
-    const { amount } = req.body;
+    const { amount, email, name } = req.body;
 
-  try {
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount,
-      currency: "usd",
-    });
+    try {
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: amount,
+            currency: "usd",
+            receipt_email: email,
+            description: `Payment for ${name}`,
+        });
 
-    res.status(200).send({
-      clientSecret: paymentIntent.client_secret,
-    });
-  } catch (error) {
+        res.status(200).send({
+            clientSecret: paymentIntent.client_secret,
+        });
+    } catch (error) {
     res.status(500).send({ error: error.message });
   }
 }
