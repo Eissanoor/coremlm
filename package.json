@@ -30,7 +30,8 @@
     "nodemailer": "^6.9.13",
     "nodemon": "^2.0.20",
     "odbc": "^2.4.6",
-    "pdfkit": "^0.15.0"
+    "pdfkit": "^0.15.0",
+    "stripe": "^16.6.0"
   },
   "type": "module",
   "description": ""
