@@ -331,18 +331,23 @@ const Email = {
     
             // Ensure both receiver_id and sender_id are provided
             if (!receiver_id || !sender_id) {
+                console.error("Missing query parameters:", { receiver_id, sender_id });
                 return res.status(400).json({ status: 400, message: "Missing required query parameters" });
             }
     
             const query = `
                 SELECT * FROM email_inbox 
-                WHERE receiver_id = ? AND sender_id = ?
+                WHERE (receiver_id = ? AND sender_id = ?) OR (receiver_id = ? AND sender_id = ?)
                 ORDER BY received_at DESC
             `;
     
-            const [messages] = await connection.execute(query, [receiver_id, sender_id]);
+            const [messages] = await connection.execute(query, [receiver_id, sender_id, sender_id, receiver_id]);
     
-            // Function to get sender details
+            if (!messages.length) {
+                console.log("No messages found for the given receiver_id and sender_id.");
+                return res.status(404).json({ status: 404, message: "No messages found" });
+            }
+    
             const getSenderDetails = async (sender_id) => {
                 const userQuery = "SELECT id, email, CONCAT(firstname, ' ', lastname) as user_name, image, 'user' as type FROM user WHERE id = ?";
                 const memberQuery = "SELECT id, email, user_name, image, 'member' as type FROM member_register WHERE id = ?";
@@ -360,31 +365,42 @@ const Email = {
                 return null;
             };
     
-            // Create a map to store messages by id
             const messageMap = new Map();
+            const subjectMap = new Map();
     
-            // Populate the map with messages
+            // Organize messages and sender details
             for (let message of messages) {
                 message.replies = [];
                 messageMap.set(message.id, message);
     
-                // Add sender details
                 const senderDetails = await getSenderDetails(message.sender_id);
                 if (senderDetails) {
                     message.sender = senderDetails;
+                } else {
+                    console.warn(`No sender details found for sender_id: ${message.sender_id}`);
                 }
+    
+                // Infer threading by subject
+                const subjectKey = message.subject.replace(/^Re:\s*/i, '').trim().toLowerCase();
+                if (!subjectMap.has(subjectKey)) {
+                    subjectMap.set(subjectKey, []);
+                }
+                subjectMap.get(subjectKey).push(message);
             }
     
-            // Organize messages into a tree structure
             const rootMessages = [];
-            for (let message of messages) {
-                if (message.reply_to_id) {
-                    const parentMessage = messageMap.get(message.reply_to_id);
-                    if (parentMessage) {
-                        parentMessage.replies.push(message);
+            for (let [subjectKey, subjectMessages] of subjectMap.entries()) {
+                if (subjectMessages.length > 1) {
+                    // Sort by received_at to organize as a thread
+                    subjectMessages.sort((a, b) => new Date(a.received_at) - new Date(b.received_at));
+                    rootMessages.push(subjectMessages[0]); // Add the first message as root
+    
+                    for (let i = 1; i < subjectMessages.length; i++) {
+                        const replyMessage = subjectMessages[i];
+                        subjectMessages[i - 1].replies.push(replyMessage);
                     }
                 } else {
-                    rootMessages.push(message);
+                    rootMessages.push(subjectMessages[0]);
                 }
             }
     
@@ -393,7 +409,7 @@ const Email = {
                 message: "Threaded inbox messages retrieved successfully",
                 data: rootMessages
             });
-        } catch (e) {
+        }catch (e) {
             console.error(e);
             return res.status(500).json(e.message);
         } finally {
