@@ -621,7 +621,50 @@ const Email = {
             }
         }
     },
-    
+    async get_all_my_filter_members(req, res, next) {
+        try {
+          const { id } = req.params; // Get the id from the request parameters
+          const { search } = req.query; // Get the search term from query parameters
+          const connection = await mysql.createConnection(config);
+      
+          // Convert search term to a wildcard search pattern
+          const searchPattern = `%${search}%`;
+      
+          // Query to get user_name and other fields from the 'user' table where email, firstname matches the search term and id matches the given parameter.
+          const userQuery = `
+            SELECT 
+              id,
+              CONCAT(firstname, ' ', lastname) AS user_name,
+              email, isAdmin
+            FROM user 
+            WHERE (email LIKE ? OR firstname LIKE ? OR id = ?)
+            AND id = ?
+          `;
+          const [userRows] = await connection.execute(userQuery, [searchPattern, searchPattern, search, id]);
+      
+          // Query to get data from the 'member_register' table based on matching email, user_name, or id, with id matching the given parameter.
+          const memberRegisterQuery = `
+            SELECT email, user_name, id 
+            FROM member_register 
+            WHERE (email LIKE ? OR user_name LIKE ? OR user_id = ?)
+            AND user_id = ?
+          `;
+          const [memberRegisterRows] = await connection.execute(memberRegisterQuery, [searchPattern, searchPattern, search, id]);
+      
+          connection.end();
+      
+          // Combine the results from both queries into one object.
+          const data = {
+            users: userRows,
+            member_registers: memberRegisterRows,
+          };
+      
+          return res.status(200).send({ data });
+        } catch (e) {
+          console.error(e);
+          return res.status(500).send("Internal Server Error");
+        }
+      }
     
 //
 }

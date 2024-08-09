@@ -30,6 +30,7 @@
     "nodemailer": "^6.9.13",
     "nodemon": "^2.0.20",
     "odbc": "^2.4.6",
+    "paypal-rest-sdk": "^1.8.1",
     "pdfkit": "^0.15.0",
     "stripe": "^16.6.0"
   },

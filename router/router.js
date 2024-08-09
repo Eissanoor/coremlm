@@ -8,6 +8,12 @@ import Comission from "../controllers/commission.js";
 import Admin from "../controllers/admin.js"
 import EmailInbox from '../controllers/emailController.js'
 import StripePayment from "../controllers/strippayment.js"
+import PaypalPayment from "../controllers/paypal.js"
+
+
+//---------------------------Paypal_Payment------------------------
+router.get("/addpayment_paypal" , PaypalPayment.addpayment_paypal)
+router.get("/success", PaypalPayment.success)
 
 //---------------------------stripe-payment------------------------
 
@@ -22,6 +28,7 @@ router.get("/getSentOneMessages", EmailInbox.getSentOneMessages)
 router.get('/getInboxOneMessages', EmailInbox.getInboxOneMessages)
 router.get('/get_all_my_members/:id',EmailInbox.get_all_my_members)
 router.delete('/deleteInboxMessage', EmailInbox.deleteInboxMessages)
+router.get("/get_all_my_filter_members/:id", EmailInbox.get_all_my_filter_members)
 //admin---------------------
 router.post("/adminLogin", Admin.adminLogin)
 router.post("/addnewadmin",Admin.addnewadmin)
