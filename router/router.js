@@ -18,7 +18,8 @@ router.get("/success", PaypalPayment.success)
 //---------------------------stripe-payment------------------------
 
 router.post("/create_payment_intent", StripePayment.sendpayment)
-
+router.get("/get_all_payment_enable", StripePayment.get_all_payment_enable)
+router.put("/update_payment_enable/:id", StripePayment.update_payment_enable)
 //---------------------------email-inbox------------------------
 router.post("/email_replay", EmailInbox.replyMessage)
 router.post('/email_send', EmailInbox.addNewMessage)

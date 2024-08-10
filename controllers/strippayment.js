@@ -1,4 +1,5 @@
 import path from "path";
+import mysql from "mysql2/promise";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 const __filename = fileURLToPath(import.meta.url);
@@ -54,6 +55,54 @@ async sendpayment(req,res,next) {
     } catch (error) {
     res.status(500).send({ error: error.message });
   }
-}
+},
+async get_all_payment_enable(req, res, next) {
+    try {
+      const connection = await mysql.createConnection(config);
+  
+      // Query to get data from the 'payment_enable' table where the user_id matches the id in params
+      const paymentEnableQuery = `
+        SELECT * from payment_enable
+      `;
+      const [paymentEnableRows] = await connection.execute(paymentEnableQuery);
+  
+      connection.end();
+  
+      // Return the retrieved data
+      return res.status(200).send({ payment_enable: paymentEnableRows });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e.message);
+    }
+  },
+  async update_payment_enable(req, res, next) {
+    try {
+      const { id } = req.params; // Get the id from the request parameters
+      const { paymentMethod, status } = req.body; // Get the new values from the request body
+      const connection = await mysql.createConnection(config);
+  
+      // Query to update the 'payment_enable' table
+      const updatePaymentEnableQuery = `
+        UPDATE payment_enable
+        SET paymentMethod = ?, status = ?
+        WHERE id = ?
+      `;
+      const [result] = await connection.execute(updatePaymentEnableQuery, [paymentMethod, status, id]);
+  
+      connection.end();
+  
+      // Check if any rows were affected (i.e., if the update was successful)
+      if (result.affectedRows === 0) {
+        return res.status(404).send({ message: "Payment record not found or no changes made" });
+      }
+  
+      // Return a success message
+      return res.status(200).send({ message: "Payment record updated successfully" });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send(e.message);
+    }
+  }
+
 }
 export default Payment;
