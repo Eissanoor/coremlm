@@ -226,7 +226,7 @@ if (smtpdata.length > 0) {
   });
   console.log(`SMTP Email: ${smtpEmail}, SMTP Password: ${smtpPassword}`);
 } else {
-  console.log('No SMTP data found.');
+  return res.status(500).json({ status: 500, message: e.message, data:"smtp issue" });
 }
       // Send an email to the user with the products in their cart
    
