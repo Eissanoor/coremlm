@@ -896,7 +896,38 @@ async deleteSmtp(req, res, next) {
             connection.end();
         }
     }
+},
+async getAllSmtp(req, res, next) {
+    let connection;
+
+    try {
+        connection = await mysql.createConnection(config);
+        await connection.connect();
+
+        // Retrieve all SMTP entries
+        const getAllSmtpQuery = `SELECT * FROM smtp ORDER BY created_at DESC`;
+
+        const [smtpRows] = await connection.execute(getAllSmtpQuery);
+
+        if (smtpRows.length === 0) {
+            return res.status(404).json({ status: 404, message: "No SMTP entries found" });
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: "SMTP entries retrieved successfully",
+            data: smtpRows
+        });
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json(e.message);
+    } finally {
+        if (connection && connection.end) {
+            connection.end();
+        }
+    }
 }
+
 
 
   //

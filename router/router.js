@@ -33,6 +33,7 @@ router.get("/get_all_my_filter_members/:id", EmailInbox.get_all_my_filter_member
 router.post("/smtpemailaddnew", EmailInbox.smtpemailaddnew)
 router.put("/updateSmtp/:id", EmailInbox.updateSmtp)
 router.delete("/deleteSmtp/:id", EmailInbox.deleteSmtp)
+router.get("/getAllSmtp", EmailInbox.getAllSmtp)
 //admin---------------------
 router.post("/adminLogin", Admin.adminLogin)
 router.post("/addnewadmin",Admin.addnewadmin)
