@@ -177,49 +177,59 @@ const MemberRegister = {
       const productQuery = `SELECT * FROM product WHERE id IN (${cartProductsString})`;
       const [productData] = await connection.execute(productQuery);
 
+      const smtpQuery = `SELECT smtpEmail, smtpPassword FROM smtp ORDER BY created_at DESC LIMIT 1`;
+const [smtpdata] = await connection.execute(smtpQuery);
+
+if (smtpdata.length > 0) {
+  const { smtpEmail, smtpPassword } = smtpdata[0];
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: smtpEmail, pass: smtpPassword },
+  });
+
+  // Render the EJS template
+  const emailTemplatePath = path.join(__dirname, "../views/email.ejs");
+  const emailHtml = await ejs.renderFile(emailTemplatePath, {
+    username: req.body.user_name,
+    email: memberData[0].email,
+    password: memberData[0].password,
+    member: memberData[0],
+    cartData: productData,
+  });
+
+  const mailOptions = {
+    from: sendEmail,
+    to: req.body.email,
+    subject: "Welcome! Verify Your Email Address",
+    html: emailHtml, // Use the rendered HTML
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error(error);
+      return res.status(500).json({
+        status: 500,
+        success: false,
+        message: "Failed to send OTP email",
+        data: null,
+      });
+    } else {
+      console.log("Email sent: " + info.response);
+    }
+  });
+
+  return res.status(201).json({
+    status: 201,
+    message:
+      "Member has been created. Products have been added to the cart. Please check your email.",
+    data: { member: memberData[0], cartData: productData },
+  });
+  console.log(`SMTP Email: ${smtpEmail}, SMTP Password: ${smtpPassword}`);
+} else {
+  console.log('No SMTP data found.');
+}
       // Send an email to the user with the products in their cart
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: { user: sendEmail, pass: sendEmailpassword },
-      });
-
-      // Render the EJS template
-      const emailTemplatePath = path.join(__dirname, "../views/email.ejs");
-      const emailHtml = await ejs.renderFile(emailTemplatePath, {
-        username: req.body.user_name,
-        email: memberData[0].email,
-        password: memberData[0].password,
-        member: memberData[0],
-        cartData: productData,
-      });
-
-      const mailOptions = {
-        from: sendEmail,
-        to: req.body.email,
-        subject: "Welcome! Verify Your Email Address",
-        html: emailHtml, // Use the rendered HTML
-      };
-
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          console.error(error);
-          return res.status(500).json({
-            status: 500,
-            success: false,
-            message: "Failed to send OTP email",
-            data: null,
-          });
-        } else {
-          console.log("Email sent: " + info.response);
-        }
-      });
-
-      return res.status(201).json({
-        status: 201,
-        message:
-          "Member has been created. Products have been added to the cart. Please check your email.",
-        data: { member: memberData[0], cartData: productData },
-      });
+   
     } catch (e) {
       console.error(e);
       return res.status(500).json({ status: 500, message: e.message });
