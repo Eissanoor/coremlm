@@ -815,13 +815,13 @@ async updateSmtp(req, res, next) {
       const { id } = req.params;
       const { smtpEmail, smtpPassword, status } = req.body;
 
-      // Ensure all necessary fields are provided
-      if (!id || !smtpEmail || !smtpPassword || typeof status === 'undefined') {
+      // Ensure the id and status are provided
+      if (!id || typeof status === 'undefined') {
           return res.status(400).json({ status: 400, message: "Missing required fields" });
       }
 
+      // Check if status is being set to 1 and ensure no other entry has status 1
       if (status === 1) {
-          // Check if any other SMTP entry already has status 1
           const [existingStatusRows] = await connection.execute(
               "SELECT id FROM smtp WHERE status = 1 AND id != ?",
               [id]
@@ -835,7 +835,23 @@ async updateSmtp(req, res, next) {
           }
       }
 
-      // Update the specific SMTP entry with the provided status
+      // Fetch the current SMTP entry values to retain old values if not provided in the request body
+      const [existingSmtpRows] = await connection.execute(
+          "SELECT smtpEmail, smtpPassword FROM smtp WHERE id = ?",
+          [id]
+      );
+
+      if (existingSmtpRows.length === 0) {
+          return res.status(404).json({ status: 404, message: "SMTP entry not found" });
+      }
+
+      const existingSmtpData = existingSmtpRows[0];
+
+      // Use provided values or fallback to existing values
+      const updatedSmtpEmail = smtpEmail || existingSmtpData.smtpEmail;
+      const updatedSmtpPassword = smtpPassword || existingSmtpData.smtpPassword;
+
+      // Update the specific SMTP entry with the provided or existing values
       const updateSmtpQuery = `
           UPDATE smtp
           SET smtpEmail = ?, smtpPassword = ?, status = ?, updated_at = NOW()
@@ -843,8 +859,8 @@ async updateSmtp(req, res, next) {
       `;
 
       const [result] = await connection.execute(updateSmtpQuery, [
-          smtpEmail,
-          smtpPassword,
+          updatedSmtpEmail,
+          updatedSmtpPassword,
           status,
           id
       ]);
