@@ -762,41 +762,41 @@ const Email = {
     let connection;
 
     try {
-        connection = await mysql.createConnection(config);
-        await connection.connect();
+      connection = await mysql.createConnection(config);
+      await connection.connect();
 
-        const { smtpEmail, smtpPassword } = req.body;
+      const { smtpEmail, smtpPassword } = req.body;
 
-        // Ensure all necessary fields are provided
-        if (!smtpEmail || !smtpPassword) {
-            return res.status(400).json({ status: 400, message: "Missing required fields" });
-        }
+      // Ensure all necessary fields are provided
+      if (!smtpEmail || !smtpPassword) {
+          return res.status(400).json({ status: 400, message: "Missing required fields" });
+      }
 
-        // Insert the new SMTP email and password into the smtp table
-        const insertSmtpQuery = `
-            INSERT INTO smtp (smtpEmail, smtpPassword, created_at)
-            VALUES (?, ?, NOW())
-        `;
+      // Insert the new SMTP email and password into the smtp table with default status 0
+      const insertSmtpQuery = `
+          INSERT INTO smtp (smtpEmail, smtpPassword, status, created_at)
+          VALUES (?, ?, 0, NOW())
+      `;
 
-        const [result] = await connection.execute(insertSmtpQuery, [
-            smtpEmail,
-            smtpPassword
-        ]);
+      const [result] = await connection.execute(insertSmtpQuery, [
+          smtpEmail,
+          smtpPassword
+      ]);
 
-        // Fetch the newly added SMTP entry
-        const [newSmtpRows] = await connection.execute(
-            "SELECT * FROM smtp WHERE id = ?",
-            [result.insertId]
-        );
+      // Fetch the newly added SMTP entry
+      const [newSmtpRows] = await connection.execute(
+          "SELECT * FROM smtp WHERE id = ?",
+          [result.insertId]
+      );
 
-        const newSmtpData = newSmtpRows[0];
+      const newSmtpData = newSmtpRows[0];
 
-        return res.status(201).json({
-            status: 201,
-            message: "New SMTP email and password added successfully",
-            data: newSmtpData
-        });
-    } catch (e) {
+      return res.status(201).json({
+          status: 201,
+          message: "New SMTP email and password added successfully",
+          data: newSmtpData
+      });
+  } catch (e) {
         console.error(e);
         return res.status(500).json(e.message);
     } finally {
@@ -809,48 +809,64 @@ async updateSmtp(req, res, next) {
     let connection;
 
     try {
-        connection = await mysql.createConnection(config);
-        await connection.connect();
+      connection = await mysql.createConnection(config);
+      await connection.connect();
 
-        const { id } = req.params;
-        const { smtpEmail, smtpPassword } = req.body;
+      const { id } = req.params;
+      const { smtpEmail, smtpPassword, status } = req.body;
 
-        // Ensure all necessary fields are provided
-        if (!id || !smtpEmail || !smtpPassword) {
-            return res.status(400).json({ status: 400, message: "Missing required fields" });
-        }
+      // Ensure all necessary fields are provided
+      if (!id || !smtpEmail || !smtpPassword || typeof status === 'undefined') {
+          return res.status(400).json({ status: 400, message: "Missing required fields" });
+      }
 
-        // Update the SMTP entry
-        const updateSmtpQuery = `
-            UPDATE smtp
-            SET smtpEmail = ?, smtpPassword = ?, updated_at = NOW()
-            WHERE id = ?
-        `;
+      if (status === 1) {
+          // Check if any other SMTP entry already has status 1
+          const [existingStatusRows] = await connection.execute(
+              "SELECT id FROM smtp WHERE status = 1 AND id != ?",
+              [id]
+          );
 
-        const [result] = await connection.execute(updateSmtpQuery, [
-            smtpEmail,
-            smtpPassword,
-            id
-        ]);
+          if (existingStatusRows.length > 0) {
+              return res.status(400).json({
+                  status: 400,
+                  message: "Another SMTP entry already has status 1. Please disable it before enabling this one."
+              });
+          }
+      }
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ status: 404, message: "SMTP entry not found" });
-        }
+      // Update the specific SMTP entry with the provided status
+      const updateSmtpQuery = `
+          UPDATE smtp
+          SET smtpEmail = ?, smtpPassword = ?, status = ?, updated_at = NOW()
+          WHERE id = ?
+      `;
 
-        // Fetch the updated SMTP entry
-        const [updatedSmtpRows] = await connection.execute(
-            "SELECT * FROM smtp WHERE id = ?",
-            [id]
-        );
+      const [result] = await connection.execute(updateSmtpQuery, [
+          smtpEmail,
+          smtpPassword,
+          status,
+          id
+      ]);
 
-        const updatedSmtpData = updatedSmtpRows[0];
+      if (result.affectedRows === 0) {
+          return res.status(404).json({ status: 404, message: "SMTP entry not found" });
+      }
 
-        return res.status(200).json({
-            status: 200,
-            message: "SMTP entry updated successfully",
-            data: updatedSmtpData
-        });
-    } catch (e) {
+      // Fetch the updated SMTP entry
+      const [updatedSmtpRows] = await connection.execute(
+          "SELECT * FROM smtp WHERE id = ?",
+          [id]
+      );
+
+      const updatedSmtpData = updatedSmtpRows[0];
+
+      return res.status(200).json({
+          status: 200,
+          message: "SMTP entry updated successfully",
+          data: updatedSmtpData
+      });
+  }catch (e) {
         console.error(e);
         return res.status(500).json(e.message);
     } finally {

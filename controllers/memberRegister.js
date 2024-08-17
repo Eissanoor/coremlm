@@ -177,7 +177,7 @@ const MemberRegister = {
       const productQuery = `SELECT * FROM product WHERE id IN (${cartProductsString})`;
       const [productData] = await connection.execute(productQuery);
 
-      const smtpQuery = `SELECT smtpEmail, smtpPassword FROM smtp ORDER BY created_at DESC LIMIT 1`;
+      const smtpQuery = `SELECT smtpEmail, smtpPassword FROM smtp Where status = 1`;
 const [smtpdata] = await connection.execute(smtpQuery);
 
 if (smtpdata.length > 0) {
