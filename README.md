@@ -11,16 +11,10 @@ password = "abc"
 database = "abc"
 port = 123,
 SUPABASE_KEY = "abc"
-supa="abc"
-C_cloud_name=abc
-C_api_key=123
-C_api_secret=abc
-supabaseUrl=https://abc.co
-
+supa ="abc"
+supabaseUrl = https://abc.co
 sendEmail = abc@gmail.com
 sendEmailpassword = abc
-
 Stripe_Securet = abc
-
 paypalClient_id = abc
 paypal_Securet = abc
